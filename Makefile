@@ -36,7 +36,44 @@
 .POSIX:
 MAKE=make
 MAKEFLAGS=--no-print-directory
+EMACS=emacs
 README = README
+
+### Tests
+
+TRACE_GOLDEN=test/golden/emacsvox-core.eld
+EMACSPEAK_TRACE_GOLDEN=test/golden/emacspeak-core.eld
+
+.PHONY: test unit-test trace trace-test reference-test advice-audit
+test: unit-test trace-test
+
+unit-test:
+	$(EMACS) -Q --batch -l test/run-tests.el
+
+trace:
+	EMACSVOX_TRACE_IMPLEMENTATION=emacsvox \
+	EMACSVOX_TRACE_ROOT="$(CURDIR)" \
+	$(EMACS) -Q --batch -l test/run-scenarios.el
+
+trace-test:
+	EMACSVOX_TRACE_IMPLEMENTATION=emacsvox \
+	EMACSVOX_TRACE_ROOT="$(CURDIR)" \
+	EMACSVOX_TRACE_EXPECTED="$(CURDIR)/$(TRACE_GOLDEN)" \
+	$(EMACS) -Q --batch -l test/run-scenarios.el
+
+reference-test:
+	@if test -z "$(EMACSPEAK_DIR)"; then \
+		echo "Set EMACSPEAK_DIR to the pinned Emacspeak checkout."; \
+		exit 2; \
+	fi
+	EMACSVOX_TRACE_IMPLEMENTATION=emacspeak \
+	EMACSVOX_TRACE_ROOT="$(EMACSPEAK_DIR)" \
+	EMACSVOX_TRACE_EXPECTED="$(CURDIR)/$(EMACSPEAK_TRACE_GOLDEN)" \
+	$(EMACS) -Q --batch -l test/run-scenarios.el
+
+advice-audit:
+	$(EMACS) -Q --batch -l utils/advice-audit.el \
+		--eval '(ems-advice-audit-batch "lisp")'
 
 ###   User level targets emacsvox   outloud espeak 
 
@@ -146,4 +183,3 @@ wk:
 #fill-column: 90
 #outline-regexp: "^###"
 #end:
-

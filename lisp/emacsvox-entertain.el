@@ -51,11 +51,14 @@
 
 ;;;  doctar
 
-(defun ems--doctor-txtype-after (&rest _)
+(defun emacsvox--advice-doctor-txtype-after (answer)
+  "Speak Doctor's ANSWER after it is inserted."
   (dtk-speak
-   (mapconcat #'(lambda (s) (format "%s" s)) (ad-get-arg 0) " ")))
+   (mapconcat (lambda (item) (format "%s" item)) answer " ")))
 
-(advice-add 'doctor-txtype :after #'ems--doctor-txtype-after)
+(with-eval-after-load 'doctor
+  (advice-add 'doctor-txtype :after
+              #'emacsvox--advice-doctor-txtype-after))
 
 ;;;  mpuz
 (voice-setup-add-map
@@ -66,21 +69,32 @@
 
 ;;;  dunnet
 (cl-loop
- for f in
- '(dun-parse dun-unix-parse) do 
+ for target in '(dun-parse dun-unix-parse)
+ for function = (intern (format "emacsvox--advice-%s-around" target))
+ do
  (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "speak"
-     (cond
-      ((ems-interactive-p)
-       (let ((orig (point)))
-         ad-do-it
+  `(defun ,function (orig-fun &rest args)
+     "Run a Dunnet parser once and speak its interactively inserted output."
+     (if (not (ems-interactive-p ',target))
+         (apply orig-fun args)
+       (let ((start (point))
+             (result (apply orig-fun args)))
          (emacsvox-icon 'mark-object)
-         (emacsvox-speak-region orig (point))))
-      (t ad-do-it))
-     ad-return-value)))
+         (emacsvox-speak-region start (point))
+         result)))))
+
+(with-eval-after-load 'dunnet
+  (dolist (target '(dun-parse dun-unix-parse))
+    (advice-add
+     target :around
+     (intern (format "emacsvox--advice-%s-around" target)))))
 
 ;;;   hangman
+
+(defvar hm-current-guess-string)
+(defvar hm-current-word)
+(defvar hm-map nil)
+(defvar hm-win-statistics)
 
 (defun emacsvox-hangman-speak-statistics ()
   "Speak statistics."
@@ -98,17 +112,14 @@
             (not emacsvox-pronounce-table))
     (emacsvox-pronounce-toggle-dictionaries)))
 
-(defun ems--hm-self-guess-char-after (&rest _)
+(defun emacsvox--advice-hm-self-guess-char-after (&rest _)
   "Speak the char."
-  (when (ems-interactive-p) (emacsvox-icon 'select-object)))
-
-(advice-add 'hm-self-guess-char :after #'ems--hm-self-guess-char-after)
+  (when (ems-interactive-p 'hm-self-guess-char)
+    (emacsvox-icon 'select-object)))
 
 (defun emacsvox-hangman-speak-guess ()
   "Speak current guessed string. "
   (interactive)
-  (cl-declare (special hm-current-guess-string
-                       hm-current-word))
   (let ((string (make-string  (length hm-current-word)
                               ?\))))
     (cl-loop for i from 0 to (1- (length hm-current-word))
@@ -119,21 +130,25 @@
               (length string)
               (downcase string))))
 
-(defun ems--hangman-after (&rest _)
+(defun emacsvox--advice-hangman-after (&rest _)
   "Speech enable hangman."
-  (when (ems-interactive-p)
+  (when (ems-interactive-p 'hangman)
     (emacsvox-hangman-setup-pronunciations)
     (emacsvox-icon 'open-object)))
 
-(advice-add 'hangman :after #'ems--hangman-after)
+(defun emacsvox-hangman--install ()
+  "Install advice and bindings after the optional Hangman package loads."
+  (when (fboundp 'hm-self-guess-char)
+    (advice-add 'hm-self-guess-char :after
+                #'emacsvox--advice-hm-self-guess-char-after))
+  (when (fboundp 'hangman)
+    (advice-add 'hangman :after #'emacsvox--advice-hangman-after))
+  (when (and (boundp 'hm-map) (keymapp hm-map))
+    (define-key hm-map " " #'emacsvox-hangman-speak-guess)
+    (define-key hm-map "=" #'emacsvox-hangman-speak-statistics)))
 
-(cl-declaim (special hm-map))
-(when (boundp 'hm-map)
-  (cl-declaim (special hm-map))
-  (define-key hm-map " " 'emacsvox-hangman-speak-guess)
-  (define-key hm-map "=" 'emacsvox-hangman-speak-statistics)
-  )
+(with-eval-after-load 'hangman
+  (emacsvox-hangman--install))
 
 (provide 'emacsvox-entertain)
 ;;;  end of file
-

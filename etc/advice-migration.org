@@ -1,0 +1,961 @@
+#+title: Emacs 31 Advice Migration Plan
+#+author: Emacsvox Contributors
+#+date: <2026-07-24 Fri>
+
+* Goal
+
+Replace the remaining legacy and partially converted advice with correct native
+Emacs advice for Emacs 31.  Preserve Emacsvox's spoken interaction while the
+conversion proceeds, then remove the temporary compatibility bridge from
+=emacsvox-preamble.el=.
+
+The bridge is migration scaffolding.  It is not the final advice architecture.
+
+* Baseline
+
+The initial raw inventory of the =lisp/= tree is:
+
+| Pattern             | Occurrences | Files |
+|---------------------+-------------+-------|
+| =(defadvice=        |         439 |   127 |
+| =ad-get-arg=        |         129 |    39 |
+| =ad-set-arg=        |           4 |     3 |
+| =ad-do-it=          |          69 |    28 |
+| =ad-return-value=   |          46 |    25 |
+| =(advice-add=       |        1404 |   149 |
+| =ems-interactive-p= |        1644 |   175 |
+
+These are textual counts, so they include macro templates, comments, and other
+forms that require classification.  In particular, some backquoted macros
+generate =defadvice= forms and are not handled by the existing converter.
+
+The current converter is not yet safe for general use.  For example, its sample
+output retains =ad-get-arg= in a function whose arguments are discarded.  It
+must become conservative and test-driven before further bulk use.
+
+* Progress Checkpoint
+
+As of the completed core-file migration, all built-in integration slices, and
+the third-party slices through 2048, ABC Mode, Ace Window, Annotate, AUCTeX,
+Avy, BBDB, Calibredb, Chess, CIDER, Clojure Mode, Combobulate, Consult, Corfu,
+Deadgrep, DevDocs, Dumb Jump, Eat, Ebuku, EIN, Elfeed, Elisp Refs, Ellama,
+Elpher, Elpy, EMMS, EMPV, ENWC, ESS, Evil, and the remaining 40
+legacy-or-positional third-party integrations, plus the standalone Gweb add-on,
+the final six third-party helper-cleanup integrations, removal of the
+compatibility bridge, and replacement of the last legacy advice-introspection
+call, on 2026-07-24 on branch =bart=:
+
+- the Emacs 31 suite contains 1009 passing ERT tests and one Mu4e contract test
+  skipped until the system Mu4e package is installed;
+- all 27 structured core speech traces match;
+- the pinned Emacspeak reference is commit
+  =7482f8e2713b5b8ea87132d9d2fcea6664ff4037=;
+- the complete default Lisp object set builds with Emacs 31.0.90, with warnings
+  but no errors: 233 object-list entries resolve to 232 unique =.elc= files
+  because =emacsvox-gptel.elc= is listed twice;
+- the real =~/bin/emacsvox-test= launcher loads Emacsvox under Emacs 31.0.90
+  and confirms that the bridge function is absent;
+- =lisp/emacsvox-loaddefs.el= is generated, ignored, and not tracked;
+- =lisp/emacsvox-preamble.el= contains only native interactive-command
+  tracking; the advice compatibility bridge and its dynamic state are absent;
+- =lisp/emacsvox-advice.el= contains no =defadvice=, =ad-get-arg=,
+  =ad-set-arg=, =ad-do-it=, or =ad-return-value= forms;
+- =lisp/emacsvox-org.el= contains no =defadvice=, positional compatibility
+  accessors, or bridge-era =ems--= advice helpers.
+- =lisp/emacsvox-outline.el= contains no =defadvice= or positional
+  compatibility accessors, including in its optional Foldout integration.
+- =lisp/emacsvox-eww.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-gnus.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-ibuffer.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-comint.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-tab-bar.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-c.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-eshell.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-which-key.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-eterm.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-ispell.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-widget.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-rst.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-reftex.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-bs.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-bibtex.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-bookmark.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-message.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-calculator.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-buff-menu.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-rmail.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-custom.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-ediff.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-tetris.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-cperl.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-ido.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-cmuscheme.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-speedbar.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-tcl.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-man.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-python.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-make-mode.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-dictionary.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-transient.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-arc.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-tar.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-sh-script.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-re-builder.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-kmacro.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-hideshow.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-dired.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-nxml.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-epa.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-ruby.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-erc.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-info.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-solitaire.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-sql.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-flyspell.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-supercite.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-lua.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-sgml-mode.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-newsticker.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-calc.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-gomoku.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-package.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-eudc.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-texinfo.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-desktop.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-flymake.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-ses.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-tempo.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-woman.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-eglot.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-enriched.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-gud.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-perl.el= contains no =defadvice=, positional compatibility
+  accessors, bridge-era =ems--= advice helpers, or implicit interactive-target
+  checks.
+- =lisp/emacsvox-todo-mode.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-treesit.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- =lisp/emacsvox-entertain.el= contains no =defadvice=, positional
+  compatibility accessors, bridge-era =ems--= advice helpers, or implicit
+  interactive-target checks.
+- the 76 completed third-party integrations contain no =defadvice=,
+  positional compatibility accessors, bridge-era =ems--= advice helpers, or
+  implicit interactive-target checks.
+
+The syntax-aware repository audit currently reports:
+
+| Pattern                      | Occurrences | Files |
+|------------------------------+-------------+-------|
+| =defadvice=                  |           0 |     0 |
+| =ad-get-arg=                 |           0 |   n/a |
+| =ad-set-arg=                 |           0 |   n/a |
+| =ad-do-it=                   |           0 |   n/a |
+| =ad-return-value=            |           0 |   n/a |
+| =ad-find-some-advice=        |           0 |   n/a |
+| bridge compatibility symbols |           0 |     0 |
+| =advice-add=                 |         934 |   183 |
+| =ems-interactive-p=          |         993 |   176 |
+
+** Remaining Emacs-bundled inventory
+
+For progress reporting, "native advice installed" and "fully final-form" are
+different states:
+
+- *legacy or positional* means a module still contains executable
+  =defadvice= or uses =ad-get-arg=, =ad-set-arg=, =ad-do-it=, or
+  =ad-return-value=;
+- *helper cleanup* means the module uses =advice-add= but still has
+  bridge-recognized =ems--= advice helpers or argument-less
+  =ems-interactive-p= checks;
+- *fully final-form* means advice is directly registered under distinct
+  =emacsvox--= names, interactive targets are explicit, and none of the
+  legacy or bridge compatibility constructs remain.
+
+The previous checkpoint used "converted" for some modules at the
+native-advice-installed stage.  As of 2026-07-24, no Emacs-bundled integration
+module remains in either the legacy-or-positional or helper-cleanup state; all
+modules in this inventory satisfy the final-form gate.
+
+The separately tracked =emacsvox-entertain.el= integration is also final-form.
+Its built-in Doctor and Dunnet advice remains lazily loaded, and optional
+Hangman advice and bindings are deferred until that package loads.  Emacsvox
+core files remain separate from this integration-module count; their bridge
+removal is also complete.
+
+** Remaining third-party inventory
+
+As of 2026-07-24, no third-party legacy-or-positional integration remains.
+No third-party integration remains at the helper-cleanup stage; all 76
+third-party integrations satisfy the final-form gate.
+
+The final helper-cleanup batch was:
+
+=denote=, =embark=, =gnuplot=, =gptel=, =marginalia=, and =maths=.
+
+The final completed legacy-or-positional batch was:
+
+=exwm=, =ffip=, =forge=, =geiser=, =go-mode=, =google=, =haskell=, =helpful=,
+=hide-lines=, =iedit=, =journalctl=, =js2=, =lispy=, =mines=, =mu4e=,
+=multiple-cursors=, =muse=, =notmuch=, =nov=, =orgalist=, =paradox=,
+=pipewire=, =popup=, =projectile=, =racket=, =related=, =rg=, =rpm-spec=,
+=sage=, =sdcv=, =slime=, =smartparens=, =sudoku=, =threes=, =typo=, =vdiff=,
+=vertico=, =vterm=, =we=, and =xkcd=.
+
+All 76 completed third-party migrations use only current package APIs and install
+their native advice after the relevant optional feature loads.  Removed command
+names remain absent.  The focused tests also cover one-call and return-value
+semantics where the old around advice repeated its original operation,
+including BBDB completion, Chess movement and selection, ESS smart-underscore,
+and Evil completion.  CIDER targets 101 current commands across its deferred
+subfeatures; its removed connection, inspector, and error-buffer command names
+are no longer recreated.  The current EMPV YouTube entry point and result
+helpers replace retired package names, and the retired EIN worksheet-tab and
+EMMS stream commands are no longer recreated.
+
+Converted core areas include movement and editing, buffers and windows,
+minibuffer and completion, search and replacement, file and process lifecycle,
+messages, overlays, timers, source navigation, property search, Help
+navigation, IELM, rectangle editing, comments, registers, button creation, and
+tooltips.  All advice registered by =lisp/emacsvox-advice.el= now uses direct,
+named native advice and bypasses the compatibility bridge.  Its three remaining
+=ems--= definitions are ordinary utility functions, not advice helpers.
+
+This phase also corrected two bridge-era semantic regressions: native
+interactive specifications now restore the intended spoken prompts for
+=local-set-key=, =global-set-key=, and =modify-syntax-entry=; and Ange FTP
+progress advice now preserves the processed string returned by the original
+function rather than returning the result of speech output.
+
+The built-in integration slices converted Compilation, Windmove, FFAP, IDO,
+Diff Mode, Project, Flymake, Package, Info, Debugger, table editing, Proced,
+View, Calendar, Wdired, Tabulated List, Net Utils, Forms, Xref, and Org.
+Outline and its optional Foldout integration, and EWW with its SHR rendering
+integration, Gnus, Ibuffer, Comint, Tab Bar, C Mode, Eshell, and Which-Key are
+also converted, along with Eterm, Ispell, Widget, RST, RefTeX, BS, BibTeX, and
+Bookmark.  Message, Calculator, Buffer Menu, Rmail, Customize, Ediff, Tetris,
+CPerl, IDO, CMU Scheme, Speedbar, Tcl, Man, Python, Make Mode, Dictionary,
+Transient, Archive Mode, Tar Mode, and Sh Script are now also fully final-form.
+Re Builder, Kmacro, Hideshow, Dired, NXML, EPA, Ruby, ERC, Info, and Solitaire
+are now also fully final-form.  SQL, Flyspell, Supercite, Lua, SGML Mode,
+Newsticker, Calc, Gomoku, Package, EUDC, and Texinfo complete the next eleven
+built-in slices.  Desktop, Flymake, SES, Tempo, WoMan, Eglot, Enriched, GUD,
+Perl, Todo Mode, and Treesit complete the remaining bundled-module inventory.
+Entertainment completes the separately tracked Doctor, Dunnet, and optional
+Hangman integration.
+Each module has direct-registration and target-aware feedback tests, and each
+conversion is an independently revertible commit.  The modules explicitly
+listed as clean earlier in this checkpoint are completely independent of the
+compatibility bridge.  The final six helper-cleanup modules now use distinct
+native advice names and explicit interactive targets.  The syntax-aware legacy
+audit reports no compatibility symbols anywhere in =lisp/=.
+
+The standalone Gweb conversion preserves its conditional completion behavior:
+Google completion inserts a literal space without calling normal completion,
+while ordinary completion invokes the original command exactly once.  Both
+paths speak the resulting word and preserve their return value.  IDO advice is
+installed only after IDO loads.
+
+The final helper-cleanup batch covers Denote, Embark, Gnuplot, GPTel,
+Marginalia, and Maths.  Gnuplot follows the package's current comint-buffer
+command names, omits its removed private completion command, and fixes a
+bridge-era wrapper that called deletion twice.  GPTel installs menu advice
+after =gptel-transient= owns that command, and Maths defers preview advice until
+AUCTeX's =preview= feature loads.
+
+The SQL conversion calls each send command exactly once and defers optional
+SQLPlus advice until that package loads.  Flyspell similarly defers the
+optional Flyspell Correct integration and fixes the auto-correct wrapper's
+duplicate original calls.  Supercite, Calc, Gomoku, Package, and EUDC now
+preserve original return values while avoiding duplicate calls.  Newsticker
+targets the current Emacs 31 URL callback and omits obsolete callback and timer
+targets.  Texinfo replaces the removed =TeXinfo-insert-environment= command
+with the current =texinfo-insert-block= command.  Lua and SGML Mode now use
+direct, target-aware native advice throughout.
+
+The final bundled batch also removes several phantom targets.  Eglot help now
+uses Emacs 31's =eldoc-doc-buffer= command and is scoped to managed Eglot
+buffers.  Flymake defers feedback for the optional bundled legacy backend to
+the real =flymake-proc-compile= command, while Tempo defers its optional
+HTML Helper advice.  GUD installs direct wrappers only after a debugger has
+generated its commands.  Perl targets =perl-electric-terminator= only when the
+normal Emacsvox post-insert hook is unavailable.  Todo Mode omits its removed
+next/previous category aliases.  Enriched advice now receives native decode
+bounds and relies on native =:after= return preservation.  Desktop, SES, WoMan,
+and Treesit use direct target-aware advice throughout.
+
+The Debugger conversion uses native =:filter-return= advice so interactive
+evaluation can speak the result without changing the value returned to callers.
+The table conversion also corrected converter regressions where deletion and
+newline-and-indent advice invoked the original command twice.  Those wrappers
+now give feedback in upstream order and invoke the original exactly once.
+
+The View conversion restored a dead generated scroll-advice family and targets
+the View scrolling commands that exist in Emacs 31.  The Calendar conversion
+likewise replaces obsolete command names with current Emacs 31 Calendar and
+Diary APIs.  It also corrects duplicate original calls in =calendar-read= and
+Diary marking while preserving their return values and message-silencing
+semantics.  The Tabulated List conversion also corrects the misspelled
+=select-objet= auditory icon to the existing =select-object= icon.
+
+The Forms conversion replaces obsolete =forms-kill-record= advice with the
+current =forms-delete-record= command, removes the dead generic =forms-search=
+target, and corrects a converted around-wrapper that called =forms-next-field=
+twice.  The Xref conversion removes the undefined =xref-find-regexp= target and
+a duplicate obsolete-alias registration while retaining target-aware feedback
+for callable aliases.
+
+The Org conversion is split into structure, agenda/table, editing, capture, and
+completion/export commits.  It preserves unconditional table-cell and capture
+lifecycle feedback where Org invokes commands internally.  It also corrects
+converter regressions that called =org-delete-char= and =org-complete= multiple
+times.  Both wrappers now call the original exactly once and preserve its
+result.
+
+Emacs 31 Org no longer defines =org-complete=.  Current Org completion reaches
+the existing Emacsvox =completion-at-point= advice through =complete-symbol=.
+The Org-specific legacy wrapper is therefore installed only when an older Org
+actually defines =org-complete=, avoiding a phantom advised command and
+duplicate current completion feedback.  Org export advice now receives the
+native =org-export--dispatch-action= and =org-export-to-file= arguments
+directly instead of reading positional bridge state.
+
+The Outline conversion keeps hide/show announcements target-aware and gives
+=outline-hide-sublevels= its explicit =levels= argument.  Its
+=outline-flag-region= wrapper now calls the original exactly once, preserves
+the original return value, and mirrors Outline invisibility with native
+arguments.  Foldout advice remains deferred until Foldout loads.
+
+The EWW conversion is split into navigation, URL and media handling, SHR
+rendering, and lifecycle commits.  It targets the Emacs 31 SHR renderer
+=shr-tag-i= instead of the obsolete =shr-tag-it=, omits nonexistent
+=shr-tag-form= and =eww-quit= targets, and installs the local =shr-tag-math=
+implementation before its advice.  Unique native advice names prevent multiple
+advice on =shr-tag-div= and =eww-reload= from replacing each other.
+
+The URL conversion expresses user-agent transformation as =:filter-return= and
+Google URL cleanup as =:filter-args=.  The rendering conversion corrects
+bridge-era wrappers that called =shr-tag-table-1= and =shr-tag-div= twice.
+Lifecycle wrappers now call ordinary reload and readable operations exactly
+once and preserve their original return values.  Moving EWW setup after its
+renderer-filter definition also makes the module load correctly as source in a
+fresh Emacs.
+
+The Gnus conversion is split into startup and group commands, summary marking
+and navigation, summary article display, and article, server, and
+authentication commits.  It removes advice for the obsolete
+=gnus-summary-mark-as-unread-forward= and
+=gnus-summary-mark-as-unread-backward= commands, moves button feedback to
+=gnus-summary-button-forward=, and moves server-edit feedback from the
+now-variable =gnus-server-edit-buffer= to =gnus-server-edit-server=.
+
+Gnus around advice now calls summary exit, subject movement, and XOAuth
+credential operations exactly once and preserves their original return values.
+The two native advice attached to =gnus-summary-show-article= have distinct
+names, so they coexist.  Optional XOAuth advice is installed only after its
+provider defines =auth-source-xoauth2--file-creds=.
+
+The Ibuffer conversion is split into Emacs 31 target contracts, entry and
+navigation, marking and buffer operations, filtering and sorting, and remaining
+BS utilities.  It removes advice for the obsolete =ibuffer-limit-disable=,
+=ibuffer-quit=, and misspelled =ibuffer-occur-*-occurence= commands.  Current
+filter disabling and generic Occur advice already provide the corresponding
+feedback.  Ibuffer quitting now uses mode-scoped =quit-window= advice with a
+distinct native advice name, allowing it to coexist with generic
+=quit-window= feedback.
+
+Ibuffer bury, filter-group pop, and filter-group yank wrappers now call their
+original operations exactly once for both interactive and programmatic calls
+and preserve the original result.  Filter-group kill feedback receives its
+native =name= argument instead of relying on obsolete dynamic scope.  Duplicate
+legacy definitions for predicate filtering, sorting-mode toggling, and filename
+copying are collapsed to one registration each.
+
+The Comint conversion is split into Emacs 31 target contracts,
+navigation/history, input, output/process, and completion/history-display
+commits.  It removes advice for the obsolete =comint-dynamic-complete= and
+=comint-kill-output= commands.  Emacs 31 completion now reaches the existing
+Emacsvox =completion-at-point= advice through =comint-completion-at-point=, and
+=comint-delete-output= provides the current output-deletion command.
+
+Comint magic-space, previous-argument insertion, delete-or-EOF, and process
+output wrappers now call their originals exactly once and preserve the original
+result.  In particular, each process chunk is inserted only once before
+autospeech.  The accessible input-history display replaces the stock display
+only for interactive calls; programmatic calls still invoke the stock function
+once.
+
+The Tab Bar conversion is split into Emacs 31 target contracts, lifecycle
+commands, and Tab Switcher commits.  It removes the obsolete =tab-bar-list-*=
+targets in favor of the current =tab-switcher-*= command family, retains the
+callable =tab-list= alias, and covers the separate
+=tab-switcher-backup-unmark= command introduced by the current interface.
+Explicit interactive targets prevent aliases such as =tab-next= and
+=tab-bar-switch-to-next-tab= from producing duplicate feedback.  Closing a tab
+by name now receives the native =name= argument directly instead of reading
+positional bridge state.
+
+The C Mode conversion is split into Emacs 31 target contracts, deletion and
+electric commands, navigation, and formatting and toggle commits.  It replaces
+the misspelled =c-awk-end-of-defunm= target with
+=c-awk-end-of-defun= and removes the =c-toggle-auto-state= compatibility alias
+that Emacs removed in version 29.  AWK advice is now installed only after
+=cc-awk= loads, so the integration does not create phantom commands.
+
+Deletion feedback now uses native =:before= advice.  This corrects a converter
+regression where =c-electric-delete-forward= called the original deletion
+twice, while preserving the reference character selection and feedback order.
+All remaining C navigation, formatting, and toggle advice uses direct named
+registration and explicit interactive targets.
+
+The Eshell conversion is split into selection and history, then editing, output,
+and completion commits.  It replaces the obsolete =eshell-kill-output= target
+with =eshell-delete-output=.  Emacs 31 line-start and TAB handling now reach the
+existing generic Emacsvox advice through =move-beginning-of-line= and
+=completion-at-point=, so the obsolete =eshell-bol= and =eshell-pcomplete=
+registrations are removed.  Optional =eshell-toggle= advice is deferred until
+that third-party library loads and no longer creates phantom commands.
+
+Eshell deletion feedback now uses native =:before= advice, correcting bridge-era
+wrappers that invoked the original deletion twice.  The duplicate
+=eshell-insert-process= feedback path is collapsed to one registration, and Lisp
+symbol completion calls the original exactly once while preserving its return
+value.  Advice for Eshell submodules is installed only after the corresponding
+=em-hist=, =em-prompt=, =em-rebind=, or =em-cmpl= feature loads.
+
+The Which-Key conversion targets the API bundled with Emacs 31; all 14 advised
+functions are present and current.  The pinned Emacspeak checkout has no
+corresponding Which-Key module, so the existing Emacsvox implementation is the
+behavioural contract.  Internal =which-key--show-page= calls continue to speak
+unconditionally when automatic speech is enabled, while popup, paging, help,
+undo, and display commands now use explicit interactive targets.
+
+The Eterm conversion covers all 21 advised targets, which remain present and
+current in Emacs 31.  Command, mode, history, prompt, job-control, completion,
+and terminal-output advice now uses direct named registration.  Launch and
+input-ring notices retain their reference-defined unconditional behaviour,
+while interactive command feedback names its target explicitly.
+
+The completion wrapper now calls =term-dynamic-complete= exactly once, speaks
+only text inserted by that call, and preserves the original result.  The
+=term-emulate-terminal= wrapper receives its native =proc= and =str= arguments
+directly, retains the reference live-process gate and feedback cases, calls the
+terminal emulator exactly once, and preserves its result.
+
+The Ispell conversion covers all six current Emacs 31 targets.  Command-loop
+feedback now receives the native misspelling, choice, and buffer-position
+arguments directly.  Buffer, region, comments-and-strings, help, and word
+operations call their originals exactly once and preserve their return values.
+In particular, =ispell-word= no longer invokes the spelling operation up to
+three times while gathering interactive feedback.
+
+The Widget conversion covers all nine current Emacs 31 targets.  Motion,
+button, text-conversion, and setup advice now uses direct named registration
+and explicit interactive targets.  Echo-help, end-of-line, and ordinary button
+presses call their originals exactly once; the EWW custom button executor
+retains its reference-defined replacement semantics.  Text conversion
+preserves the widget returned by the original operation.  Widget setup now
+repairs the actual field and text keymaps rather than iterating over quoted
+keymap variable names, restoring the intended bindings.
+
+The RST conversion covers 29 current Emacs 31 targets and omits the removed
+=rst-promote-region= command.  Navigation, compilation, TOC, marking, list, and
+paragraph feedback now uses direct named registration and explicit interactive
+targets.
+
+The RefTeX conversion covers 26 current Emacs 31 targets and omits the removed
+=reftex-index-toggle-labels= and =reftex-index-toggle-file-boundary= commands.
+Highlight feedback receives the native =begin= and =end= arguments rather than
+reading positional bridge state.
+
+The BS conversion covers all 23 current Emacs 31 targets.  Mode setup retains
+its reference-defined unconditional voice-lock behaviour, while selection,
+marking, deletion, navigation, and cycling feedback uses direct target-aware
+advice.
+
+The BibTeX conversion covers 22 current Emacs 31 targets.  It moves feedback to
+the current entry-navigation, OPT/ALT removal, field-killing, =bibtex-String=,
+and =bibtex-Preamble= APIs, and collapses the duplicated
+=bibtex-InProceedings= definition to one registration.
+
+The Bookmark conversion covers 18 current Emacs 31 targets.  Annotation
+confirmation now follows =bookmark-edit-annotation-confirm= rather than its
+obsolete alias.  Removed bookmark-name insertion commands and the removed
+Bookmark-specific quit command are omitted instead of advising noninteractive
+or global replacements, and the duplicated annotation-edit definition is
+collapsed to one registration.
+
+The Message conversion covers 24 current Emacs 31 message-composition targets.
+Sending, field movement, body movement, and formatting feedback now uses direct
+named registration and explicit interactive targets.
+
+The Calculator conversion covers its 21 current registrations.  Native around
+wrappers for launch, insertion, selection, and backspace now invoke their
+original operation exactly once and preserve its result.  The remaining
+post-command feedback uses distinct direct registrations where a target has
+more than one advice.
+
+The Buffer Menu conversion expresses =list-buffers= result handling as
+=:filter-return= advice, uses native arguments for modified-state feedback, and
+scopes global =quit-window= feedback to Buffer Menu mode.  The removed
+=Buffer-menu-quit= command remains unadvised.
+
+The Rmail conversion makes message navigation, deletion, output, summary, and
+label feedback target-aware.  Labeled movement wrappers now call the original
+operation exactly once on both successful and unsuccessful searches and remain
+quiet for programmatic calls.
+
+The Customize conversion uses current Emacs 31 Custom APIs and omits the dead
+=custom-set= target.  Saving calls the original once, and a stable native advice
+identity lets the module-specific Customize feedback replace the generic core
+advice without producing duplicate cues.
+
+The Ediff conversion replaces removed vertical scrolling targets with the
+current =ediff-scroll-vertically= API and derives direction from the command
+event.  Session, navigation, copy, and refinement feedback is now directly
+registered and target-aware.
+
+The Tetris conversion preserves the reference-defined score display override
+and models full-row transformation as =:filter-return=.  It uses the current
+tick-period API, removes a dead variable assignment, and ensures programmatic
+launches call the original game exactly once.
+
+The CPerl conversion moves editing, navigation, indentation, and mode feedback
+to direct named advice with native arguments.  Backspace and linefeed wrappers
+now call their original command exactly once.
+
+The IDO conversion removes its remaining bridge-era helpers and implicit
+interactive checks.  Directory and candidate-exhibit feedback retains its
+intentional unconditional behaviour, while command feedback identifies its
+interactive target explicitly.
+
+The CMU Scheme conversion covers all 12 current Emacs 31 targets.  Launch,
+region, and file operations receive their native command, bounds, and file-name
+arguments directly; switching and evaluation feedback uses direct target-aware
+registration.
+
+The Speedbar conversion covers 12 current registrations.  Frame-close feedback
+now follows =dframe-close-frame= only in Speedbar mode because
+=speedbar-close-frame= was removed.  Navigation and directory wrappers call
+their originals exactly once, and button voiceification receives native
+arguments.
+
+The Tcl conversion covers nine current registrations, replaces removed
+Tcl-specific defun aliases with current generic navigation, and keeps
+evaluation, indentation, help, and shell feedback target-aware.  The Man
+conversion covers ten current registrations and omits the removed =Man-quit=
+command.
+
+The Python conversion expands generated advice into 31 distinct direct
+registrations.  It omits the non-command
+=python-shell-send-string-no-output= target, uses native region bounds for
+indentation, and makes backspace call its original exactly once.  The Make Mode
+conversion covers nine callable Emacs 31 targets; generic
+=completion-at-point= feedback replaces the removed =makefile-complete=
+command, while the still-callable browser API remains covered.
+
+The Dictionary conversion covers eight current registrations and relies on
+generic =forward-button= and =backward-button= feedback in place of removed
+Dictionary-specific link commands.  The Transient conversion covers 13 current
+registrations, uses the Emacs 31 =transient-show-menu= and
+=transient-enable-menu-navigation= settings, and corrects a suspend wrapper
+that previously called the original operation multiple times.
+
+The Archive Mode conversion covers all nine current targets.  The Tar Mode
+conversion covers eight current targets and removes advice for the absent
+=tar-quit= command rather than attaching mode-specific behaviour to a global
+quit command.  The Sh Script conversion retains four current direct
+registrations, moves here-document feedback to =sh--maybe-here-document=, and
+calls that hook exactly once.  Removed Sh-specific indentation and newline
+commands are covered by existing generic Emacsvox advice, while ordinary
+character echo remains handled by =emacsvox-post-self-insert-hook=.
+
+The Re Builder conversion covers all nine current targets.  Automatic regexp
+updates remain unconditional, while command feedback is explicitly
+target-aware.  The Kmacro conversion covers eight current targets and corrects
+two around wrappers that previously executed their keyboard macro twice.  Its
+module-specific =call-last-kbd-macro= helper now has a distinct name so it
+coexists with the core feedback for the same command.
+
+The Hideshow conversion covers seven current targets and omits the absent
+=hs-show-region= command.  Dired's remaining hand-written advice now uses
+direct named registration; sorting and file visiting call their original
+operations exactly once, and the removed =dired-quit= command remains
+unadvised.
+
+The NXML conversion covers 23 current commands and omits the noncommands
+=nxml-backward-single-paragraph= and
+=nxml-backward-single-balanced-item=.  Electric slash and completion wrappers
+call their originals exactly once.  The EPA conversion covers all 36 current
+targets: 26 operations use once-only message-silencing around advice and ten
+commands use direct target-aware after advice.
+
+The Ruby conversion covers eight callable Emacs 31 targets without recreating
+the removed =ruby-mark-defun=, =ruby-insert-end=,
+=ruby-reindent-then-newline-and-indent=, or =ruby-electric-brace= commands.
+Optional inferior-Ruby feedback is installed only after the external
+=inf-ruby= package loads.
+
+The ERC conversion moves message monitoring to the current =erc-insert-line=
+API and server-message silencing to =erc-parse-server-response=.  The parser
+now runs exactly once and preserves its result.  The conversion also corrects
+the old ambiguous =C-c SPC= spelling, which otherwise made the module fail to
+load before defining the remaining =C-c= prefix bindings.
+
+The Info conversion covers 28 current interactive commands.  It omits the
+noncommand =Info-select-node=, the variable =Info-menu-last-node=, and the
+obsolete =Info-exit= alias; Info quitting uses the existing core
+=quit-window= feedback.  The Solitaire conversion covers six live targets,
+retains unconditional feedback for completed stone moves, and relies on the
+existing =quit-window= integration in place of the removed =solitaire-quit=
+command.
+
+All integration modules and internal advice-support paths are now final-form.
+The compatibility bridge has been removed from =emacsvox-preamble.el=.  The
+complete Emacs 31 suite, semantic trace comparison, full Lisp build, startup
+smoke test, and syntax-aware audit all pass.  The remaining acceptance task is
+the post-removal audible core checklist.
+
+* Working Principles
+
+1. Preserve behaviour before improving or simplifying it.
+2. Convert in small, coherent commits that can be reverted independently.
+3. Prefer =:before= and =:after= advice when they express the behaviour exactly.
+4. Use =:filter-args= for argument transformation and =:filter-return= for
+   return-value transformation where practical.
+5. Use =:around= only when the original call genuinely needs explicit control.
+6. Make the advised interactive command explicit; do not depend on
+   =called-interactively-p= inside an advice helper.
+7. Automatically convert only patterns whose semantics are covered by tests.
+8. Manually review conditional calls, multiple =ad-do-it= forms, argument
+   mutation, return-value mutation, and advice ordering.
+9. Do not commit generated =lisp/emacsvox-loaddefs.el= changes as part of advice
+   migration slices.
+
+* Testing Strategy
+
+** Emacs 31 ERT suite
+
+Add a batch ERT suite that does not require a real speech server.  Tests record
+speech and auditory events using test doubles.  The initial suite covers:
+
+- interactive and non-interactive invocation;
+- nested and recursive interactive commands;
+- =:before=, =:after=, and =:around= ordering;
+- argument inspection and replacement;
+- return-value inspection and replacement;
+- autoload and function redefinition behaviour;
+- advice membership, removal, and module reload;
+- timers, overlays, font locking, and redisplay-sensitive paths where they can
+  be exercised deterministically in batch mode.
+
+The standard entry point will be similar to:
+
+#+begin_src sh
+make test EMACS=/home/bart/opt/emacs-31/bin/emacs
+#+end_src
+
+** Structured speech traces
+
+Compare semantic events rather than synthesized audio.  A trace may contain:
+
+#+begin_src emacs-lisp
+((speak "Beginning of buffer")
+ (icon select-object)
+ (voice annotate)
+ (stop))
+#+end_src
+
+Scenarios should also capture relevant editor state:
+
+- buffer contents;
+- point and mark;
+- selected buffer and window;
+- command return value;
+- messages;
+- whether invocation was interactive.
+
+Normalize dynamic values such as paths, timestamps, generated buffer names, and
+version strings before comparison.
+
+** Three-way behavioural comparison
+
+Use three implementations when practical:
+
+1. A pinned fresh checkout of the original Emacspeak codebase, as an additional
+   source of intended behaviour.
+2. Emacsvox at the bridge baseline, as the strict local regression reference.
+3. The converted Emacsvox implementation, as the candidate.
+
+Record the reference Emacspeak commit and Emacs version.  Do not treat current
+upstream Emacspeak automatically as correct: Emacspeak and Emacsvox may have
+intentionally diverged, and upstream behaviour may have changed since the fork.
+
+The normal test suite must remain self-contained and offline.  Reference tests
+will be optional and accept an explicit checkout, for example:
+
+#+begin_src sh
+make reference-test \
+  EMACS=/home/bart/opt/emacs-31/bin/emacs \
+  EMACSPEAK_DIR=/path/to/pinned/emacspeak
+#+end_src
+
+Commit normalized golden traces for a small set of valuable core scenarios.
+Use the live checkout comparison to investigate differences and refresh a trace
+only after reviewing the behavioural change.
+
+Audio waveform comparison is not a primary test: synthesis engines, timing,
+rate, and engine versions make it noisy.  TTS protocol traces may be added later
+when Lisp-level semantic traces are insufficient.
+
+** Manual acceptance
+
+Automated tests establish which speech operation occurred, but not whether the
+interaction sounds natural.  At core milestones, run a short audible checklist
+covering movement, editing, buffer boundaries, copying, minibuffer operation,
+Dired, completion, overlays, and font locking.
+
+* Migration Slices
+
+** 1. Record this plan
+
+Commit this document independently so the agreed strategy remains available to
+future contributors.
+
+** 2. Establish the ERT harness
+
+Add the batch runner and Make target.  Capture the compatibility bridge and
+interactive-command behaviour as regression tests before changing them.
+
+** 3. Add speech-event differential testing
+
+Add a reusable structured event recorder, scenario format, normalization, and
+the optional pinned-Emacspeak runner.  Begin with approximately ten core
+scenarios rather than attempting every optional package.
+
+** 4. Harden conversion and audit tooling
+
+Add ERT tests for parsing, classification, generation, dry runs, and failure
+cases.  Detect backquoted advice-generating macros.  Convert safe forms only and
+produce a deterministic manual-review report for complex forms.
+
+** 5. Make interactive targets explicit
+
+Introduce the final target-aware form, for example:
+
+#+begin_src emacs-lisp
+(ems-interactive-p 'kill-word)
+#+end_src
+
+Temporarily retain the argument-less compatibility behaviour for unmigrated
+code.  Fully converted native advice helpers use the package-private
+=emacsvox--= prefix, while the bridge remains limited to converted helpers with
+the legacy =ems--= prefix.  This makes newly corrected advice bypass the bridge
+without another wrapper or marker property.
+
+** 6. Remove visible legacy redefinition warnings
+
+Convert and test the Dired/Locate advice and the Mail advice in separate commits.
+This validates autoload and redefinition behaviour early and removes the
+=ad-handle-definition= messages observed during manual testing.
+
+** 7. Convert core advice by behavioural area
+
+Use separate commits for coherent areas such as:
+
+- movement and editing;
+- buffers and windows;
+- minibuffer and completion;
+- search and replace;
+- files and processes;
+- overlays, font locking, timers, and redisplay.
+
+Avoid converting all of =emacsvox-advice.el= in one commit.
+
+** 8. Convert remaining modules
+
+Convert Emacs built-in integrations first, followed by optional third-party
+packages.  Prefer one module, or a small closely related group, per commit.
+
+** 9. Remove the bridge
+
+Status: completed on 2026-07-24 in commit =2a46242a6=, followed by the
+legacy-introspection cleanup and audit expansion in commit =03db55661=.
+
+When the repository-wide legacy audit is clean, remove:
+
+- the advice on =advice-add=;
+- =ad-get-arg= and =ad-set-arg= compatibility definitions;
+- dynamic converted-advice argument and return-value state;
+- generated wrapper storage;
+- compatibility-only interactive target state.
+
+The removal was committed independently after the automated suite and semantic
+trace gate passed.  The post-removal audible core checklist remains the final
+manual acceptance task.
+
+* Commit Gate
+
+Before each migration commit:
+
+1. Run the Emacs 31 ERT suite.
+2. Byte-compile every touched Lisp file with Emacs 31.
+3. Run the legacy-symbol audit on the converted files.
+4. Run an integration load test where applicable.
+5. Inspect the exact staged diff and exclude generated or unrelated files.
+6. Record remaining warnings or manual-test requirements in the handoff.
+
+At major boundaries, compile the complete default Emacsvox object set and run a
+fresh startup smoke test.
+
+* Completion Criteria
+
+The migration is complete when:
+
+- no executable legacy =defadvice= remains;
+- no converted advice depends on =ad-get-arg=, =ad-set-arg=, =ad-do-it=, or
+  =ad-return-value=;
+- interactive advice uses the explicit, tested target mechanism;
+- advice can be inspected, removed, and reloaded through native APIs;
+- the compatibility bridge is absent;
+- all automated tests pass under Emacs 31;
+- the default object set byte-compiles under Emacs 31;
+- startup and the audible core acceptance checklist pass;
+- documentation no longer claims a stronger migration status than the audit
+  supports.
+
+As of 2026-07-24, every automated, audit, build, and startup criterion above is
+satisfied.  The post-removal audible core acceptance checklist is the only
+open criterion.

@@ -478,94 +478,106 @@ Returns a string with appropriate personality."
 
 ;; avoid redundant message speech output
 
-(defun ems--widget-echo-help-around (orig-fun &rest args)
-  (let ((result (apply orig-fun args)))
-    (ems-with-messages-silenced (apply orig-fun args) result) result))
+(defun emacsvox--advice-widget-echo-help-around
+    (original &rest arguments)
+  "Call ORIGINAL once with help-echo messages silenced."
+  (ems-with-messages-silenced
+    (apply original arguments)))
 
-(advice-add 'widget-echo-help :around #'ems--widget-echo-help-around)
+(advice-add
+ 'widget-echo-help :around #'emacsvox--advice-widget-echo-help-around
+ '((name . emacsvox)))
 
-(defun ems--widget-beginning-of-line-after (&rest _)
+(defun emacsvox--advice-widget-beginning-of-line-after (&rest _)
   "speak"
-  (cond
-   ((ems-interactive-p)
+  (when (ems-interactive-p 'widget-beginning-of-line)
     (let ((widget (widget-at (point))))
-      ad-do-it (emacsvox-icon 'select-object)
+      (emacsvox-icon 'select-object)
       (message "Moved to start of text field %s"
-               (if widget (widget-value widget) ""))))
-   (t ad-do-it))
-  ad-return-value)
+               (if widget (widget-value widget) "")))))
 
-(advice-add 'widget-beginning-of-line :after
-            #'ems--widget-beginning-of-line-after)
+(advice-add
+ 'widget-beginning-of-line :after
+ #'emacsvox--advice-widget-beginning-of-line-after
+ '((name . emacsvox)))
 
-(defun ems--widget-end-of-line-around (orig-fun &rest args)
+(defun emacsvox--advice-widget-end-of-line-after (&rest _)
   "speak"
-  (let ((result (apply orig-fun args)))
-    (cond
-     ((ems-interactive-p)
-      (let ((widget (widget-at (point))))
-        (apply orig-fun args) (emacsvox-icon 'select-object)
-        (message "Moved to end of text field %s"
-                 (if widget (widget-value widget) ""))))
-     (t (apply orig-fun args)))
-    result))
+  (when (ems-interactive-p 'widget-end-of-line)
+    (let ((widget (widget-at (point))))
+      (emacsvox-icon 'select-object)
+      (message "Moved to end of text field %s"
+               (if widget (widget-value widget) "")))))
 
-(advice-add 'widget-end-of-line :around
-            #'ems--widget-end-of-line-around)
+(advice-add
+ 'widget-end-of-line :after
+ #'emacsvox--advice-widget-end-of-line-after
+ '((name . emacsvox)))
 
-(defun ems--widget-forward-after (&rest _)
+(defun emacsvox--advice-widget-forward-after (&rest _)
   "speak"
-  (when (ems-interactive-p)
+  (when (ems-interactive-p 'widget-forward)
     (emacsvox-icon 'item)
     (emacsvox-widget-summarize (widget-at (point)))))
 
-(advice-add 'widget-forward :after #'ems--widget-forward-after)
+(advice-add
+ 'widget-forward :after #'emacsvox--advice-widget-forward-after
+ '((name . emacsvox)))
 
-(defun ems--widget-backward-after (&rest _)
+(defun emacsvox--advice-widget-backward-after (&rest _)
   "speak"
-  (when (ems-interactive-p)
+  (when (ems-interactive-p 'widget-backward)
     (emacsvox-icon 'item)
     (emacsvox-widget-summarize (widget-at (point)))))
 
-(advice-add 'widget-backward :after #'ems--widget-backward-after)
+(advice-add
+ 'widget-backward :after #'emacsvox--advice-widget-backward-after
+ '((name . emacsvox)))
 
-(defun ems--widget-kill-line-after (&rest _)
+(defun emacsvox--advice-widget-kill-line-after (&rest _)
   "speak"
-  (when (ems-interactive-p)
+  (when (ems-interactive-p 'widget-kill-line)
     (emacsvox-icon 'delete-object) (emacsvox-speak-current-kill 0)
     (dtk-tone-deletion)))
 
-(advice-add 'widget-kill-line :after #'ems--widget-kill-line-after)
+(advice-add
+ 'widget-kill-line :after #'emacsvox--advice-widget-kill-line-after
+ '((name . emacsvox)))
 
 ;;;   activating widgets:
 ;; forward declaration:
 
-(defun ems--widget-button-press-around (orig-fun &rest args)
+(defun emacsvox--advice-widget-button-press-around
+    (original pos &rest arguments)
   "speak"
-  (let ((result (apply orig-fun args)))
-    (let ((inhibit-read-only t) (widget (widget-at (ad-get-arg 0))))
-      (cond
-       (widget
-        (let ((pos (ad-get-arg 0)) (old-position (point)))
-          (cond
-           ((and (eq major-mode 'eww-mode)
-                 (bound-and-true-p emacsvox-we-url-executor)
-                 (functionp emacsvox-we-url-executor))
-            (emacsvox-icon 'button)
-            (call-interactively 'emacsvox-we-url-expand-and-execute))
-           (t (apply orig-fun args)
-              (cond
-               ((= old-position (point)) (emacsvox-icon 'button)
-                (emacsvox-widget-summarize (widget-at pos)))
-               (t (emacsvox-icon 'large-movement)
-                  (or (emacsvox-widget-summarize (widget-at (point)))
-                      (emacsvox-speak-line))))))))
-       (t (apply orig-fun args)))
-      result)
-    result))
+  (let ((inhibit-read-only t)
+        (widget (widget-at pos)))
+    (cond
+     ((not widget)
+      (apply original pos arguments))
+     ((and (eq major-mode 'eww-mode)
+           (bound-and-true-p emacsvox-we-url-executor)
+           (functionp emacsvox-we-url-executor))
+      (emacsvox-icon 'button)
+      (call-interactively 'emacsvox-we-url-expand-and-execute)
+      nil)
+     (t
+      (let ((old-position (point))
+            (result (apply original pos arguments)))
+        (cond
+         ((= old-position (point))
+          (emacsvox-icon 'button)
+          (emacsvox-widget-summarize (widget-at pos)))
+         (t
+          (emacsvox-icon 'large-movement)
+          (or (emacsvox-widget-summarize (widget-at (point)))
+              (emacsvox-speak-line))))
+        result)))))
 
-(advice-add 'widget-button-press :around
-            #'ems--widget-button-press-around)
+(advice-add
+ 'widget-button-press :around
+ #'emacsvox--advice-widget-button-press-around
+ '((name . emacsvox)))
 
 ;;;   Interactively summarize a widget and its parents.
 
@@ -609,26 +621,27 @@ widget before summarizing."
 
 ;;;  work around widget problems
 
-(defun ems--widget-convert-text-around (orig-fun &rest args)
+(defun emacsvox--advice-widget-convert-text-around
+    (original type from to &rest arguments)
   "Protect value of personality if set originally"
-  (let
-      ((inhibit-read-only t) (start (ad-get-arg 1))
-       (end (ad-get-arg 2)) (orig nil))
-    (setq orig (get-text-property start 'personality))
-    (apply orig-fun args)
-    (and orig (put-text-property start end 'personality orig))))
+  (let ((inhibit-read-only t)
+        (personality (get-text-property from 'personality)))
+    (let ((result (apply original type from to arguments)))
+      (when personality
+        (put-text-property from to 'personality personality))
+      result)))
 
-(advice-add 'widget-convert-text :around
-            #'ems--widget-convert-text-around)
+(advice-add
+ 'widget-convert-text :around
+ #'emacsvox--advice-widget-convert-text-around
+ '((name . emacsvox)))
 
 ;;;  update widget related keymaps so we dont loose the
 ;;emacsvox prefix 
 
-(defun ems--widget-setup-after (&rest _)
+(defun emacsvox--advice-widget-setup-after (&rest _)
   "Update widget keymaps."
-  (cl-declare
-   (special emacsvox-prefix widget-field-keymap widget-text-keymap))
-  (cl-loop for map in '(widget-field-keymap widget-text-keymap) do
+  (cl-loop for map in (list widget-field-keymap widget-text-keymap) do
            (when (keymapp map)
              (define-key map emacsvox-prefix 'emacsvox-keymap)
              (define-key map
@@ -639,7 +652,9 @@ widget before summarizing."
              (define-key map "\215"
                          'emacsvox-widget-update-from-minibuffer))))
 
-(advice-add 'widget-setup :after #'ems--widget-setup-after)
+(advice-add
+ 'widget-setup :after #'emacsvox--advice-widget-setup-after
+ '((name . emacsvox)))
 
 ;;;  augment widgets 
 
@@ -687,4 +702,3 @@ widget before summarizing."
     w))
 
 (provide  'emacsvox-widget)
-

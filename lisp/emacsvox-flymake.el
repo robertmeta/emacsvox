@@ -45,6 +45,7 @@
 
 (eval-when-compile (require 'cl-lib))
 (require 'emacsvox-preamble)
+(require 'flymake)
 
 ;;;  Map Faces:
 
@@ -57,23 +58,30 @@
 ;;;  Interactive Commands:
 
 (cl-loop
- for f in 
+ for target in
  '(flymake-goto-diagnostic
    flymake-goto-next-error
    flymake-goto-prev-error)
+ for function = (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and speak after an interactive Flymake navigation command."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'large-movement)
+         (emacsvox-speak-line)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
-(defun ems--flymake-compile-after (&rest _)
-  "speak." (when (ems-interactive-p) (emacsvox-icon 'task-done)))
+(defun emacsvox--advice-flymake-proc-compile-after (&rest _)
+  "Cue completion after an interactive legacy Flymake compilation."
+  (when (ems-interactive-p 'flymake-proc-compile)
+    (emacsvox-icon 'task-done)))
 
-(advice-add 'flymake-compile :after #'ems--flymake-compile-after)
+(with-eval-after-load 'flymake-proc
+  (advice-add 'flymake-proc-compile :after
+              #'emacsvox--advice-flymake-proc-compile-after))
 
 (provide 'emacsvox-flymake)
 ;;;  end of file
-

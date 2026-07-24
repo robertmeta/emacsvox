@@ -580,21 +580,16 @@ Safari/537.36"
           )
   "User Agent string sent when masquerading.")
 
-;; Advice note: Setting ad-return-value in one arm of the cond
-;; appears to perculate to both arms.
+(defun emacsvox--advice-url-http-user-agent-string-filter-return (_)
+  "Return the configured EWW user-agent header."
+  (if emacsvox-eww-masquerade
+      emacsvox-eww-masquerade-as
+    "User-Agent: URL/Emacs \r\n"))
 
-(defun ems--url-http-user-agent-string-around (orig-fun &rest args)
-  "Masquerade response"
-  (let ((result (apply orig-fun args)))
-    (apply orig-fun args)
-    (cond
-     (emacsvox-eww-masquerade
-      (setq result emacsvox-eww-masquerade-as))
-     (t (setq result "User-Agent: URL/Emacs \n")))
-    result))
-
-(advice-add 'url-http-user-agent-string :around
-            #'ems--url-http-user-agent-string-around)
+(advice-add
+ 'url-http-user-agent-string :filter-return
+ #'emacsvox--advice-url-http-user-agent-string-filter-return
+ '((name . emacsvox)))
 
 (defcustom emacsvox-eww-inhibit-images nil
   "Turn this on to avoid rendering images."
@@ -705,7 +700,6 @@ Safari/537.36"
    do
    (emacsvox-keymap-update eww-mode-map binding))
   (setq shr-external-rendering-functions emacsvox-eww-filter-renderers))
-(emacsvox-eww-setup)
 
 ;;; play media:
 
@@ -799,17 +793,21 @@ are available are cued by an auditory icon on the header line."
 ;;;  Advice Interactive Commands:
 
 (cl-loop
- for f in
+ for target in
  '(eww-up-url eww-top-url
               eww-next-url eww-previous-url
               eww-back-url eww-forward-url)
+ for function = (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak"
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-header-line)))))
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and speak after interactive EWW URL navigation."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'open-object)
+         (emacsvox-speak-header-line)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
 (defvar-local emacsvox-eww-style nil
   "Record if we applied an  xsl style in this buffer.")
@@ -822,7 +820,7 @@ are available are cued by an auditory icon on the header line."
 
 ;; Check cache if URL already open, otherwise cache.
 
-(defun ems--eww-reload-around (orig-fun &rest args)
+(defun emacsvox--advice-eww-reload-around (original &rest arguments)
   "Check buffer local settings for feed buffers.\nIf buffer was result of displaying a feed, reload feed.\nIf we came from a url-template, reload that template.\nRetain previously set punctuations  mode."
   (add-hook 'emacsvox-eww-post-hook
             'emacsvox-eww-post-render-actions)
@@ -845,20 +843,28 @@ are available are cued by an auditory icon on the header line."
                 'at-end)
       (kill-buffer)
       (emacsvox-url-template-open (emacsvox-url-template-get n))))
-   (t (apply orig-fun args)
-      (sox-sin 0.5 "%-2:%-1" "fade h .1 .5 .4 gain -8 "))))
+   (t
+    (let ((result (apply original arguments)))
+      (sox-sin 0.5 "%-2:%-1" "fade h .1 .5 .4 gain -8 ")
+      result))))
 
-(advice-add 'eww-reload :around #'ems--eww-reload-around)
+(advice-add
+ 'eww-reload :around #'emacsvox--advice-eww-reload-around
+ '((name . emacsvox-reload-wrapper)))
 
 (cl-loop
- for f in
+ for target in
  '(eww eww-open-in-new-buffer eww-reload eww-open-file)
+ for function = (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak"
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)))))
+  `(progn
+     (defun ,function (&rest _)
+       "Cue after an interactive EWW open operation."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'open-object)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
 (defvar emacsvox-eww-rename-buffer t
   "Result buffer is renamed to document title.")
@@ -881,118 +887,112 @@ are available are cued by an auditory icon on the header line."
 
 (add-hook 'eww-after-render-hook 'emacsvox-eww-after-render-hook)
 
-(defun ems--eww-add-bookmark-after (&rest _)
-  "speak." (when (ems-interactive-p) (emacsvox-icon 'mark-object)))
-
-(advice-add 'eww-add-bookmark :after #'ems--eww-add-bookmark-after)
-
-(defun ems--eww-beginning-of-text-after (&rest _)
-  "speak." (when (ems-interactive-p) (emacsvox-icon 'large-movement)))
-
-(advice-add 'eww-beginning-of-text :after
-            #'ems--eww-beginning-of-text-after)
-
-(defun ems--eww-end-of-text-after (&rest _)
-  "speak." (when (ems-interactive-p) (emacsvox-icon 'mark-object)))
-
-(advice-add 'eww-end-of-text :after #'ems--eww-end-of-text-after)
-
-(defun ems--eww-bookmark-browse-after (&rest _)
-  "speak." (when (ems-interactive-p) (emacsvox-icon 'open-object)))
-
-(advice-add 'eww-bookmark-browse :after
-            #'ems--eww-bookmark-browse-after)
-
-(defun ems--eww-bookmark-kill-after (&rest _)
-  "speak." (when (ems-interactive-p) (emacsvox-icon 'delete-object)))
-
-(advice-add 'eww-bookmark-kill :after #'ems--eww-bookmark-kill-after)
-
-(defun ems--eww-bookmark-yank-after (&rest _)
-  "speak." (when (ems-interactive-p) (emacsvox-icon 'yank-object)))
-
-(advice-add 'eww-bookmark-yank :after #'ems--eww-bookmark-yank-after)
-
-(defun ems--eww-list-bookmarks-after (&rest _)
-  "speak." (when (ems-interactive-p) (emacsvox-icon 'open-object)))
-
-(advice-add 'eww-list-bookmarks :after #'ems--eww-list-bookmarks-after)
-
 (cl-loop
- for f in
- '(eww-next-bookmark eww-previous-bookmark)
+ for (target icon) in
+ '((eww-add-bookmark mark-object)
+   (eww-beginning-of-text large-movement)
+   (eww-end-of-text mark-object)
+   (eww-bookmark-browse open-object)
+   (eww-bookmark-kill delete-object)
+   (eww-bookmark-yank yank-object)
+   (eww-list-bookmarks open-object))
+ for function = (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f(after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p) (emacsvox-icon 'select-object))
-     (emacsvox-speak-line))))
-
-(defun ems--eww-quit-after (&rest _)
-  "speak." (when (ems-interactive-p) (emacsvox-icon 'close-object)))
-
-(advice-add 'eww-quit :after #'ems--eww-quit-after)
+  `(progn
+     (defun ,function (&rest _)
+       "Cue after an interactive EWW bookmark operation."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon ',icon)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
 (cl-loop
- for f in
+ for target in
+ '(eww-next-bookmark eww-previous-bookmark)
+ for function = (intern (format "emacsvox--advice-%s-after" target))
+ do
+ (eval
+  `(progn
+     (defun ,function (&rest _)
+       "Speak after EWW bookmark movement and cue interactive movement."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'select-object))
+       (emacsvox-speak-line))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
+
+;; Emacs 31 exits EWW through `quit-window'; `eww-quit' no longer exists.
+
+(cl-loop
+ for target in
  '(eww-change-select
    eww-toggle-checkbox
    eww-submit)
+ for function = (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'button)))))
+  `(progn
+     (defun ,function (&rest _)
+       "Cue after an interactive EWW form operation."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'button)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 (defvar-local emacsvox-eww-a-speaker nil
   "Specialized link speaker.")
 
 (cl-loop
- for f in
+ for target in
  '(shr-next-link shr-previous-link)
+ for function = (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     
-     (when (ems-interactive-p)
-       (let ((host
-              (condition-case nil
-                  (url-host
-                   (url-generic-parse-url
-                    (funcall emacsvox-eww-url-at-point)))
-                (error ""))))
-         (cond                          ; smarter icon:
-          ((or
-            emacsvox-we-url-executor
-            (string-match "reddit" host)
-            (string-match "wikipedia" host))
-           (emacsvox-icon 'item))
-          (t (emacsvox-icon 'button))))
-       (cond
-        (emacsvox-eww-a-speaker (funcall emacsvox-eww-a-speaker))
-        (t 
-         (emacsvox-speak-region
-          (point)
-          (next-single-property-change
-           (point) 'help-echo nil (point-max)))))))))
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and speak after interactive EWW link navigation."
+       (when (ems-interactive-p ',target)
+         (let ((host
+                (condition-case nil
+                    (url-host
+                     (url-generic-parse-url
+                      (funcall emacsvox-eww-url-at-point)))
+                  (error ""))))
+           (emacsvox-icon
+            (if (or
+                 emacsvox-we-url-executor
+                 (string-match "reddit" host)
+                 (string-match "wikipedia" host))
+                'item
+              'button)))
+         (if emacsvox-eww-a-speaker
+             (funcall emacsvox-eww-a-speaker)
+           (emacsvox-speak-region
+            (point)
+            (next-single-property-change
+             (point) 'help-echo nil (point-max))))))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
 ;; Handle emacsvox-we-url-executor
 
-(defun ems--eww-follow-link-around (orig-fun &rest args)
-  "Respect emacsvox-we-url-executor if set."
-  
+(defun emacsvox--advice-eww-follow-link-around (original &rest arguments)
+  "Call ORIGINAL or offer the configured custom URL executor."
   (emacsvox-icon 'button)
   (let ((emacsvox-eww-masquerade t))
     (cond
-     ((and (ems-interactive-p) (functionp emacsvox-we-url-executor)
+     ((and (ems-interactive-p 'eww-follow-link)
+           (functionp emacsvox-we-url-executor)
            (y-or-n-p "Use custom executor? "))
       (let ((url (get-text-property (point) 'shr-url)))
         (unless url (error "No URL  under point"))
         (funcall emacsvox-we-url-executor url)))
-     (t (apply orig-fun args)))))
+     (t (apply original arguments)))))
 
-(advice-add 'eww-follow-link :around #'ems--eww-follow-link-around)
+(advice-add
+ 'eww-follow-link :around
+ #'emacsvox--advice-eww-follow-link-around
+ '((name . emacsvox)))
 
 ;;;  web-pre-process
 
@@ -1044,7 +1044,7 @@ Note that the Web browser should reset this hook after using it.")
 
 ;;;  xslt transform on request:
 
-(defun ems--eww-display-html-before (&rest _)
+(defun emacsvox--advice-eww-display-html-before (&rest _)
   "Apply XSLT transform if requested."
   (cl-declare
    (special emacsvox-eww-pre-process-hook emacsvox-we-xsl-transform
@@ -1057,37 +1057,13 @@ Note that the Web browser should reset this hook after using it.")
       (emacsvox-xslt-region emacsvox-we-xsl-transform (point)
                             (point-max) emacsvox-we-xsl-params)))))
 
-(advice-add 'eww-display-html :before #'ems--eww-display-html-before)
+(advice-add
+ 'eww-display-html :before
+ #'emacsvox--advice-eww-display-html-before
+ '((name . emacsvox)))
 
 ;;;  DOM Structure In Rendered Buffer:
 
-(cl-loop
- for  tag in
- '(h1 h2 h3 h4 h5 h6 div                ; sectioning
-      math                              ; mathml
-      ul ol dl                          ; Lists
-      li dt dd p                        ; block-level: bullets, paras
-      pre form blockquote                   ; block-level
-      a b it em span                    ; in-line
-      table)
- do
- (eval
-  `
-  (defadvice ,(intern (format "shr-tag-%s" tag)) (around eww-tag pre act comp)
-    (let ((orig (point)))
-      ad-do-it
-      (let ((start
-             (if (char-equal (following-char) ?\n)
-                 (min (point-max) (1+ orig))
-               orig))
-            (end
-             (if (> (point) orig)
-                 (1- (point))
-               (point))))
-        (put-text-property start end
-                           (quote ,tag) 'shr-tag)
-        (when (memq (quote ,tag) '(h1 h2 h3 h4 h5 h6))
-          (put-text-property start end 'h 'shr-tag)))))))
 ;; Handle MathML math element:
 
 (defun shr-tag-math (dom)
@@ -1096,23 +1072,65 @@ Note that the Web browser should reset this hook after using it.")
   (shr-generic dom)
   (shr-ensure-newline))
 
+(cl-loop
+ for tag in
+ '(h1 h2 h3 h4 h5 h6 div                ; sectioning
+      math                              ; mathml
+      ul ol dl                          ; Lists
+      li dt dd p                        ; block-level: bullets, paras
+      pre blockquote                    ; block-level
+      a b i em span                     ; in-line
+      table)
+ for target = (intern (format "shr-tag-%s" tag))
+ for function = (intern (format "emacsvox--advice-%s-around" target))
+ do
+ (eval
+  `(progn
+     (defun ,function (original dom)
+       "Render DOM once, then add Emacsvox SHR navigation properties."
+       (let ((origin (point))
+             (result (funcall original dom)))
+         (let ((start
+                (if (char-equal (following-char) ?\n)
+                    (min (point-max) (1+ origin))
+                  origin))
+               (end
+                (if (> (point) origin)
+                    (1- (point))
+                  (point))))
+           (put-text-property start end ',tag 'shr-tag)
+           (when (memq ',tag '(h1 h2 h3 h4 h5 h6))
+             (put-text-property start end 'h 'shr-tag)))
+         result))
+     (advice-add
+      ',target :around #',function
+      '((name . emacsvox-shr-tag))))))
+
 ;;;  Advice readable
 
-(defun ems--eww-readable-around (orig-fun &rest args)
-  "Speak contents."
+(defun emacsvox--advice-eww-readable-around (original &rest arguments)
+  "Call ORIGINAL once and speak the resulting readable contents."
   (let ((inhibit-read-only t))
-    (apply orig-fun args) (emacsvox-icon 'open-object)
-    (emacsvox-speak-buffer)))
+    (let ((result (apply original arguments)))
+      (emacsvox-icon 'open-object)
+      (emacsvox-speak-buffer)
+      result)))
 
-(advice-add 'eww-readable :around #'ems--eww-readable-around)
+(advice-add
+ 'eww-readable :around #'emacsvox--advice-eww-readable-around
+ '((name . emacsvox)))
 
 ;;;   Customize image loading:
 
-(defun ems--eww-display-image-around (orig-fun &rest args)
-  "Image inhibition"
-  (unless emacsvox-eww-inhibit-images (apply orig-fun args)))
+(defun emacsvox--advice-eww-display-image-around (original buffer)
+  "Call ORIGINAL with BUFFER unless EWW image display is inhibited."
+  (unless emacsvox-eww-inhibit-images
+    (funcall original buffer)))
 
-(advice-add 'eww-display-image :around #'ems--eww-display-image-around)
+(advice-add
+ 'eww-display-image :around
+ #'emacsvox--advice-eww-display-image-around
+ '((name . emacsvox)))
 
 ;;;  element, class, role, id caches:
 
@@ -1121,12 +1139,15 @@ Note that the Web browser should reset this hook after using it.")
 
 ;; Mark cache to be dirty if we restore history:
 
-(defun ems--eww-restore-history-after (&rest _)
-  "mark cache dirty." (setq emacsvox-eww-cache-updated nil)
+(defun emacsvox--advice-eww-restore-history-after (&rest _)
+  "Invalidate and rebuild EWW DOM caches after restoring history."
+  (setq emacsvox-eww-cache-updated nil)
   (emacsvox-eww-prepare-eww))
 
-(advice-add 'eww-restore-history :after
-            #'ems--eww-restore-history-after)
+(advice-add
+ 'eww-restore-history :after
+ #'emacsvox--advice-eww-restore-history-after
+ '((name . emacsvox)))
 
 (defvar-local eww-id-cache nil
   "Cache of id values. Is buffer-local.")
@@ -1261,6 +1282,8 @@ Note that the Web browser should reset this hook after using it.")
     (cl-pushnew (cons 'span 'emacsvox-eww-span-with-space) copy)
     copy)
   "Renderers used when filtering.")
+
+(emacsvox-eww-setup)
 
 (defun eww-dom-keep-if (dom predicate)
   "Return filtered DOM  keeping nodes that match  predicate.
@@ -1966,56 +1989,47 @@ The %s is automatically spoken if there is no user activity."
          (setq emacsvox-eww-autospeak (not emacsvox-eww-autospeak)))
        (funcall-interactively #'emacsvox-eww-previous-element s)))))
 
+(defun emacsvox--advice-google-url-filter-args (arguments)
+  "Canonicalize a Google result URL in the first of ARGUMENTS."
+  (let ((url (car arguments)))
+    (if (and
+         (stringp url)
+         (string-prefix-p (emacsvox-google-result-url-prefix) url))
+        (cons
+         (emacsvox-google-canonicalize-result-url url)
+         (cdr arguments))
+      arguments)))
+
+(dolist (target '(url-retrieve-internal url-truncate-url-for-viewing eww))
+  (advice-add
+   target :filter-args #'emacsvox--advice-google-url-filter-args
+   '((name . emacsvox-cleanup-url))))
+
 (cl-loop
- for f in
- '(url-retrieve-internal  url-truncate-url-for-viewing eww)
+ for target in
+ '(shr-copy-url shr-maybe-probe-and-copy-url)
+ for function = (intern (format "emacsvox--advice-%s-around" target))
  do
  (eval
-  `(defadvice ,f (before cleanup-url  pre act comp)
-     "Canonicalize Google search URLs."
-     (let ((u (ad-get-arg 0)))
-       (cond
-        ((and u (stringp u)
-              (string-prefix-p (emacsvox-google-result-url-prefix) u))
-         (ad-set-arg 0 (emacsvox-google-canonicalize-result-url
-                        u))))))))
-
-(defun ems--shr-copy-url-around (orig-fun &rest args)
-  "Canonicalize Google URLs"
-  (ems-with-messages-silenced (apply orig-fun args)
-                              (when (ems-interactive-p)
-                                (emacsvox-icon 'delete-object)
-                                (let ((u (car kill-ring)))
-                                  (when
-                                      (and u (stringp u)
-                                           (string-prefix-p
-                                            (emacsvox-google-result-url-prefix)
-                                            u))
-                                    (kill-new
-                                     (emacsvox-google-canonicalize-result-url
-                                      u))))
-                                (emacsvox-speak-current-kill))))
-
-(advice-add 'shr-copy-url :around #'ems--shr-copy-url-around)
-
-(defun ems--shr-maybe-probe-and-copy-url-around (orig-fun &rest args)
-  "Canonicalize Google URLs"
-  (ems-with-messages-silenced (apply orig-fun args)
-                              (when (ems-interactive-p)
-                                (emacsvox-icon 'delete-object)
-                                (let ((u (car kill-ring)))
-                                  (when
-                                      (and u (stringp u)
-                                           (string-prefix-p
-                                            (emacsvox-google-result-url-prefix)
-                                            u))
-                                    (kill-new
-                                     (emacsvox-google-canonicalize-result-url
-                                      u))))
-                                (emacsvox-speak-current-kill))))
-
-(advice-add 'shr-maybe-probe-and-copy-url :around
-            #'ems--shr-maybe-probe-and-copy-url-around)
+  `(progn
+     (defun ,function (original url)
+       "Copy URL once, canonicalize Google results, and preserve the result."
+       (ems-with-messages-silenced
+         (let ((result (funcall original url)))
+           (when (ems-interactive-p ',target)
+             (emacsvox-icon 'delete-object)
+             (let ((copied-url (car kill-ring)))
+               (when
+                   (and
+                    (stringp copied-url)
+                    (string-prefix-p
+                     (emacsvox-google-result-url-prefix) copied-url))
+                 (kill-new
+                  (emacsvox-google-canonicalize-result-url copied-url))))
+             (emacsvox-speak-current-kill))
+           result)))
+     (advice-add
+      ',target :around #',function '((name . emacsvox))))))
 
 ;;;  Speech-enable EWW buffer list:
 
@@ -2028,38 +2042,48 @@ The %s is automatically spoken if there is no user activity."
         (dtk-speak (buffer-name buffer))
       (message "Can't find an EWW buffer for this line. "))))
 
-(defun ems--eww-list-buffers-after (&rest _)
-  "speak."
-  (when (ems-interactive-p)
-    (emacsvox-icon 'open-object) (emacsvox-eww-speak-buffer-line)))
-
-(advice-add 'eww-list-buffers :after #'ems--eww-list-buffers-after)
-
-(defun ems--eww-buffer-kill-after (&rest _)
-  "speak."
-  (when (ems-interactive-p)
-    (emacsvox-icon 'close-object) (emacsvox-eww-speak-buffer-line)))
-
-(advice-add 'eww-buffer-kill :after #'ems--eww-buffer-kill-after)
-
-(defun ems--eww-buffer-select-after (&rest _)
-  "speak."
-  (when (ems-interactive-p)
-    (emacsvox-icon 'select-object) (emacsvox-speak-mode-line)
-    (emacsvox-icon 'open-object)))
-
-(advice-add 'eww-buffer-select :after #'ems--eww-buffer-select-after)
-
 (cl-loop
- for f in
- '(eww-buffer-show-next eww-buffer-show-previous)
+ for (target icon) in
+ '((eww-list-buffers open-object)
+   (eww-buffer-kill close-object))
+ for function = (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-eww-speak-buffer-line)))))
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and speak after an interactive EWW buffer-list operation."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon ',icon)
+         (emacsvox-eww-speak-buffer-line)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
+
+(defun emacsvox--advice-eww-buffer-select-after (&rest _)
+  "Cue and speak after interactively selecting an EWW buffer."
+  (when (ems-interactive-p 'eww-buffer-select)
+    (emacsvox-icon 'select-object)
+    (emacsvox-speak-mode-line)
+    (emacsvox-icon 'open-object)))
+
+(advice-add
+ 'eww-buffer-select :after
+ #'emacsvox--advice-eww-buffer-select-after
+ '((name . emacsvox)))
+
+(cl-loop
+ for target in
+ '(eww-buffer-show-next eww-buffer-show-previous)
+ for function = (intern (format "emacsvox--advice-%s-after" target))
+ do
+ (eval
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and speak after interactive EWW buffer-list movement."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'select-object)
+         (emacsvox-eww-speak-buffer-line)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
 ;;;   EWW Filtering shortcuts:
 
@@ -2081,16 +2105,19 @@ The %s is automatically spoken if there is no user activity."
 ;; eww-browse-with-external-browser to use emacsvox-m-player
 ;; instead.
 
-(defun ems--eww-browse-with-external-browser-around
-    (orig-fun &rest args)
-  "Use our m-player integration."
-  (let*
-      ((url (or (ad-get-arg 0) "")) (case-fold-search t)
-       (media-p (string-match emacsvox-media-extensions url)))
-    (cond (media-p (emacsvox-m-player url)) (t (apply orig-fun args)))))
+(defun emacsvox--advice-eww-browse-with-external-browser-around
+    (original &optional url)
+  "Send media URL to Emacsvox or call ORIGINAL for other URLs."
+  (let ((url (or url ""))
+        (case-fold-search t))
+    (if (string-match emacsvox-media-extensions url)
+        (emacsvox-m-player url)
+      (funcall original url))))
 
-(advice-add 'eww-browse-with-external-browser :around
-            #'ems--eww-browse-with-external-browser-around)
+(advice-add
+ 'eww-browse-with-external-browser :around
+ #'emacsvox--advice-eww-browse-with-external-browser-around
+ '((name . emacsvox)))
 
 ;;;  eww-marks:
 
@@ -2432,20 +2459,23 @@ with an interactive prefix arg. "
 ;; other negatives.
 ;; Overlays may avoid this problem.
 
-(defun ems--shr-tag-table-1-around (orig-fun &rest args)
-  "Cache pointer to table dom as a text property,\nand add relevant properties to the rendered region."
-  (let ((result (apply orig-fun args)))
-    (let ((table-dom (ad-get-arg 0)) (start (point)))
-      (apply orig-fun args)
-      (unless (get-text-property start 'table-dom)
-        (add-text-properties start (point)
-                             (list 'auditory-icon 'fill-object
-                                   'table-start start 'table-end
-                                   (1- (point)) 'table-dom table-dom)))
-      result)
+(defun emacsvox--advice-shr-tag-table-1-around (original dom)
+  "Render DOM once and cache its table metadata on the inserted text."
+  (let ((start (point))
+        (result (funcall original dom)))
+    (unless (get-text-property start 'table-dom)
+      (add-text-properties
+       start (point)
+       (list 'auditory-icon 'fill-object
+             'table-start start
+             'table-end (1- (point))
+             'table-dom dom)))
     result))
 
-(advice-add 'shr-tag-table-1 :around #'ems--shr-tag-table-1-around)
+(advice-add
+ 'shr-tag-table-1 :around
+ #'emacsvox--advice-shr-tag-table-1-around
+ '((name . emacsvox-table-dom)))
 
 (defvar-local emacsvox-eww-table-cell 0
   "Track current table cell to enable table navigation.
@@ -2602,17 +2632,18 @@ With interactive prefix arg, move to the start of the table."
 
 ;;; Dive Into DOM: div
 
-(defun ems--shr-tag-div-around (orig-fun &rest args)
-  "Persist dom to the div node as a text property."
-  (let ((result (apply orig-fun args)))
-    (let ((start (point)))
-      (apply orig-fun args)
-      (unless (get-text-property start 'eww-dom)
-        (put-text-property start (point) 'eww-dom (ad-get-arg 0)))
-      result)
+(defun emacsvox--advice-shr-tag-div-dom-around (original dom)
+  "Render DOM once and cache it on the inserted div text."
+  (let ((start (point))
+        (result (funcall original dom)))
+    (unless (get-text-property start 'eww-dom)
+      (put-text-property start (point) 'eww-dom dom))
     result))
 
-(advice-add 'shr-tag-div :around #'ems--shr-tag-div-around)
+(advice-add
+ 'shr-tag-div :around
+ #'emacsvox--advice-shr-tag-div-dom-around
+ '((name . emacsvox-div-dom)))
 
 (defun emacsvox-eww-dive-into-div ()
   "Focus on current div by rendering it in a new buffer."

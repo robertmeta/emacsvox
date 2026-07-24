@@ -49,7 +49,10 @@
   (require 'subr-x))
 (cl-pushnew (file-name-directory load-file-name) load-path :test #'string=)
 
-;; Note: Old defadvice infrastructure removed - now using modern advice-add throughout
+;;; Interactive command tracking:
+
+(defvar ems--interactive-fn-name nil
+  "Holds the name of the function being called interactively.")
 
 ;;;   Define locations:
 
@@ -208,51 +211,23 @@
 ;;;; Design:
 ;; Advice on funcall-interactively stores the name of the
 ;; interactive command being run.
-;; The defadvice macro  itself has a defadvice  to generate a locally bound
-;; predicate that ensures that ems-interactive-p is only called from
-;; within emacsvox advice forms.
-;; Thus, ems-interactive-p is reserved for use within Emacsvox advice.
+;; Native Emacsvox advice passes its target explicitly to `ems-interactive-p'.
+;; This prevents a nested command from consuming the outer command's marker.
 ;;; Implementation: Interactive Check:
 
-(defvar ems--interactive-fn-name nil
-  "Holds name of function being called interactively.")
-
-(defun ems--funcall-interactively-around (orig-fun func &rest args)
+(defun emacsvox--funcall-interactively-around (orig-fun func &rest args)
   "Record name of interactive function being called."
   (let ((ems--interactive-fn-name func))
     (apply orig-fun func args)))
 
-(advice-add 'funcall-interactively :around #'ems--funcall-interactively-around)
+(advice-add
+ 'funcall-interactively :around #'emacsvox--funcall-interactively-around)
 
-;; Beware: Advice on defadvice
-(advice-add 'defadvice :around #'ems--generate-interactive-check)
-
-(defun ems--generate-interactive-check (orig-macro fn-name args &rest body)
-  "Lexically redefine ems-interactive-p  to test  ems--interactive-fn-name.
-The local definition expands to a call to `eq' that compares
-FN-NAME to our stored value of ems--interactive-fn-name."
-  (apply
-   orig-macro fn-name args
-   (macroexp-unprogn
-    (macroexpand-all
-     (macroexp-progn body)
-     ;;  env with new definition
-     `((ems-interactive-p
-        ;; Reset the var to nil after consuming it to avoid  misfiring if
-        ;; fn-name calls itself recursively.
-        . ,(lambda ()
-             `(when (eq ems--interactive-fn-name ',fn-name)
-                (setq ems--interactive-fn-name nil)
-                t)))
-       . ,macroexpand-all-environment)))))
-
-(defun ems-interactive-p ()
-  "Dynamically defined at runtime to provide Emacsvox's
-  interactive check.  This definition never be called, so produce debug
-  info if the unexpected happens."
-  
-  (error
-   (format "From %s: Unexpected call!" ems--interactive-fn-name)))
+(defun ems-interactive-p (target)
+  "Return non-nil when TARGET is the current interactive command."
+  (when (eq ems--interactive-fn-name target)
+    (setq ems--interactive-fn-name nil)
+    t))
 
 ;;; defun: ems--fastload:
 

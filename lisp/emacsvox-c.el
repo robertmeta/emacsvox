@@ -55,128 +55,149 @@
 
 ;;;  advice electric deletion
 
-(defun ems--c-electric-delete-forward-around (orig-fun &rest args)
-  "Speak character you're deleting."
-  (let ((result (apply orig-fun args)))
-    (cond
-     ((ems-interactive-p) (dtk-tone-deletion)
-      (emacsvox-speak-this-char (following-char))
-      (apply orig-fun args))
-     (t (apply orig-fun args)))
-    result))
+(defun emacsvox--advice-c-electric-delete-forward-before (&rest _)
+  "Speak the following character before an interactive deletion."
+  (when (ems-interactive-p 'c-electric-delete-forward)
+    (dtk-tone-deletion)
+    (emacsvox-speak-this-char (following-char))))
 
-(advice-add 'c-electric-delete-forward :around
-            #'ems--c-electric-delete-forward-around)
+(advice-add
+ 'c-electric-delete-forward :before
+ #'emacsvox--advice-c-electric-delete-forward-before
+ '((name . emacsvox)))
 
-(cl-loop
- for f in
- '(c-hungry-delete-forward c-hungry-delete-backwards c-electric-backspace)
- do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Speak character you're deleting."
-     (cond
-      ((ems-interactive-p)
-       (dtk-tone-deletion)
-       (emacsvox-speak-this-char (preceding-char))
-       ad-do-it)
-      (t ad-do-it))
-     ad-return-value)))
+(defun emacsvox--advice-c-hungry-delete-forward-before (&rest _)
+  "Speak the reference character before an interactive hungry deletion."
+  (when (ems-interactive-p 'c-hungry-delete-forward)
+    (dtk-tone-deletion)
+    (emacsvox-speak-this-char (preceding-char))))
+
+(advice-add
+ 'c-hungry-delete-forward :before
+ #'emacsvox--advice-c-hungry-delete-forward-before
+ '((name . emacsvox)))
+
+(defun emacsvox--advice-c-hungry-delete-backwards-before (&rest _)
+  "Speak the preceding character before an interactive hungry deletion."
+  (when (ems-interactive-p 'c-hungry-delete-backwards)
+    (dtk-tone-deletion)
+    (emacsvox-speak-this-char (preceding-char))))
+
+(advice-add
+ 'c-hungry-delete-backwards :before
+ #'emacsvox--advice-c-hungry-delete-backwards-before
+ '((name . emacsvox)))
+
+(defun emacsvox--advice-c-electric-backspace-before (&rest _)
+  "Speak the preceding character before an interactive backspace."
+  (when (ems-interactive-p 'c-electric-backspace)
+    (dtk-tone-deletion)
+    (emacsvox-speak-this-char (preceding-char))))
+
+(advice-add
+ 'c-electric-backspace :before
+ #'emacsvox--advice-c-electric-backspace-before
+ '((name . emacsvox)))
 
 ;;;   advice things to speak
 ;;;   Electric chars speak
 
-(defun ems--c-electric-semi&comma-after (&rest _)
+(defun emacsvox--advice-c-electric-semi&comma-after (&rest _)
   "Speak the line when a statement is completed."
-  (when (ems-interactive-p)
+  (when (ems-interactive-p 'c-electric-semi&comma)
     (cond ((= last-input-event 44) (dtk-speak " comma "))
           (t (emacsvox-speak-line)))))
 
-(advice-add 'c-electric-semi&comma :after
-            #'ems--c-electric-semi&comma-after)
+(advice-add
+ 'c-electric-semi&comma :after
+ #'emacsvox--advice-c-electric-semi&comma-after
+ '((name . emacsvox)))
 
-(defun ems--c-electric-delete-before (&rest _)
+(defun emacsvox--advice-c-electric-delete-before (&rest _)
   "Speak char before deleting it."
-  (when (ems-interactive-p)
+  (when (ems-interactive-p 'c-electric-delete)
     (emacsvox-speak-this-char (preceding-char)) (dtk-tone-deletion)))
 
-(advice-add 'c-electric-delete :before #'ems--c-electric-delete-before)
+(advice-add
+ 'c-electric-delete :before
+ #'emacsvox--advice-c-electric-delete-before
+ '((name . emacsvox)))
 
 ;;;   Moving across logical chunks
 
 ;; CPP directives:
 
-(defun ems--c-up-conditional-after (&rest _)
-  "Speak the line moved to."
-  (when (ems-interactive-p)
-    (emacsvox-icon 'large-movement) (emacsvox-speak-line)))
-
-(advice-add 'c-up-conditional :after #'ems--c-up-conditional-after)
-
-(defun ems--c-forward-conditional-after (&rest _)
-  "Speak the line moved to."
-  (when (ems-interactive-p)
-    (emacsvox-icon 'large-movement) (emacsvox-speak-line)))
-
-(advice-add 'c-forward-conditional :after
-            #'ems--c-forward-conditional-after)
-
-(defun ems--c-backward-conditional-after (&rest _)
-  "Speak the line moved to."
-  (when (ems-interactive-p)
-    (emacsvox-icon 'large-movement) (emacsvox-speak-line)))
-
-(advice-add 'c-backward-conditional :after
-            #'ems--c-backward-conditional-after)
+(cl-loop
+ for target in
+ '(c-up-conditional c-forward-conditional c-backward-conditional)
+ for function =
+ (intern (format "emacsvox--advice-%s-after" target))
+ do
+ (eval
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and speak after interactive preprocessor movement."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'large-movement)
+         (emacsvox-speak-line)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
 ;; Statements
 
-(defun ems--c-beginning-of-statement-after (&rest _)
-  "Speak the line moved to."
-  (when (ems-interactive-p)
-    (emacsvox-icon 'item) (emacsvox-speak-line)))
+(cl-loop
+ for target in '(c-beginning-of-statement c-end-of-statement)
+ for function =
+ (intern (format "emacsvox--advice-%s-after" target))
+ do
+ (eval
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and speak after interactive statement movement."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'item)
+         (emacsvox-speak-line)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
-(advice-add 'c-beginning-of-statement :after
-            #'ems--c-beginning-of-statement-after)
-
-(defun ems--c-end-of-statement-after (&rest _)
-  "Speak the line moved to."
-  (when (ems-interactive-p)
-    (emacsvox-icon 'item) (emacsvox-speak-line)))
-
-(advice-add 'c-end-of-statement :after #'ems--c-end-of-statement-after)
-
-(defun ems--c-mark-function-after (&rest _)
+(defun emacsvox--advice-c-mark-function-after (&rest _)
   "Provide spoken and auditory feedback."
-  (when (ems-interactive-p)
+  (when (ems-interactive-p 'c-mark-function)
     (emacsvox-icon 'mark-object) (emacsvox-speak-line)))
 
-(advice-add 'c-mark-function :after #'ems--c-mark-function-after)
+(advice-add
+ 'c-mark-function :after
+ #'emacsvox--advice-c-mark-function-after
+ '((name . emacsvox)))
 
 ;;;  advice program navigation
 
-(defun ems--c-beginning-of-defun-after (&rest _)
-  "Speak the line."
-  (when (ems-interactive-p)
-    (emacsvox-icon 'paragraph) (emacsvox-speak-line)))
-
-(advice-add 'c-beginning-of-defun :after
-            #'ems--c-beginning-of-defun-after)
-
-(defun ems--c-end-of-defun-after (&rest _)
-  "Speak the line."
-  (when (ems-interactive-p)
-    (emacsvox-icon 'paragraph) (emacsvox-speak-line)))
-
-(advice-add 'c-end-of-defun :after #'ems--c-end-of-defun-after)
+(cl-loop
+ for target in '(c-beginning-of-defun c-end-of-defun)
+ for function =
+ (intern (format "emacsvox--advice-%s-after" target))
+ do
+ (eval
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and speak after interactive function movement."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'paragraph)
+         (emacsvox-speak-line)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
 ;;;   extensions  provided by c++ mode
 
-(defun ems--c-scope-operator-after (&rest _)
-  "speak what you inserted."
-  (when (ems-interactive-p) (dtk-speak "colon colon")))
+(defun emacsvox--advice-c-scope-operator-after (&rest _)
+  "Speak the scope operator after interactive insertion."
+  (when (ems-interactive-p 'c-scope-operator)
+    (dtk-speak "colon colon")))
 
-(advice-add 'c-scope-operator :after #'ems--c-scope-operator-after)
+(advice-add
+ 'c-scope-operator :after
+ #'emacsvox--advice-c-scope-operator-after
+ '((name . emacsvox)))
 
 ;;;   Some more navigation functions I define:
 
@@ -363,88 +384,137 @@ and their meanings. ")
 
 ;;;   indenting commands
 
-(defun ems--c-indent-defun-after (&rest _)
-  (when (ems-interactive-p)
+(defun emacsvox--advice-c-indent-defun-after (&rest _)
+  "Cue completion after interactively indenting a function."
+  (when (ems-interactive-p 'c-indent-defun)
     (emacsvox-icon 'fill-object) (message "Indented function")))
 
-(advice-add 'c-indent-defun :after #'ems--c-indent-defun-after)
+(advice-add
+ 'c-indent-defun :after
+ #'emacsvox--advice-c-indent-defun-after
+ '((name . emacsvox)))
 
-(defun ems--c-indent-command-after (&rest _)
-  "speak." (when (ems-interactive-p) (emacsvox-speak-line)))
+(defun emacsvox--advice-c-indent-command-after (&rest _)
+  "Speak the line after an interactive indentation command."
+  (when (ems-interactive-p 'c-indent-command)
+    (emacsvox-speak-line)))
 
-(advice-add 'c-indent-command :after #'ems--c-indent-command-after)
+(advice-add
+ 'c-indent-command :after
+ #'emacsvox--advice-c-indent-command-after
+ '((name . emacsvox)))
 
 ;;;  Additional Interactive Commands:
 
 (cl-loop
- for f in
- '(
-   c-previous-statement c-next-statement
-   c-awk-beginning-of-defun c-awk-end-of-defunm)
+ for target in '(c-previous-statement c-next-statement)
+ for function =
+ (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and speak after interactive statement navigation."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'large-movement)
+         (emacsvox-speak-line)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
-(defun ems--c-backslash-region-after (&rest _)
-  "speak."
-  (when (ems-interactive-p)
+(with-eval-after-load 'cc-awk
+  (cl-loop
+   for target in '(c-awk-beginning-of-defun c-awk-end-of-defun)
+   for function =
+   (intern (format "emacsvox--advice-%s-after" target))
+   do
+   (eval
+    `(progn
+       (defun ,function (&rest _)
+         "Cue and speak after interactive AWK function movement."
+         (when (ems-interactive-p ',target)
+           (emacsvox-icon 'large-movement)
+           (emacsvox-speak-line)))
+       (advice-add
+        ',target :after #',function '((name . emacsvox)))))))
+
+(defun emacsvox--advice-c-backslash-region-after (&rest _)
+  "Cue and speak the region after interactive backslash insertion."
+  (when (ems-interactive-p 'c-backslash-region)
     (emacsvox-icon 'task-done)
     (emacsvox-speak-region (point) (mark))))
 
-(advice-add 'c-backslash-region :after #'ems--c-backslash-region-after)
+(advice-add
+ 'c-backslash-region :after
+ #'emacsvox--advice-c-backslash-region-after
+ '((name . emacsvox)))
 
 (cl-loop
- for f in
- '(c-context-line-break c-context-open-line)
+ for target in '(c-context-line-break c-context-open-line)
+ for function =
+ (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)
-       (emacsvox-icon 'open-object)))))
+  `(progn
+     (defun ,function (&rest _)
+       "Speak and cue after an interactive contextual line insertion."
+       (when (ems-interactive-p ',target)
+         (emacsvox-speak-line)
+         (emacsvox-icon 'open-object)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
 (cl-loop
- for f in
+ for target in
  '(c-up-conditional-with-else c-down-conditional-with-else c-down-conditional)
+ for function =
+ (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)
-       (emacsvox-icon 'large-movement)))))
+  `(progn
+     (defun ,function (&rest _)
+       "Speak and cue after interactive conditional movement."
+       (when (ems-interactive-p ',target)
+         (emacsvox-speak-line)
+         (emacsvox-icon 'large-movement)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 (cl-loop
- for f in
+ for target in
  '(
    c-indent-new-comment-line c-indent-line-or-region
    c-indent-exp c-fill-paragraph)
+ for function =
+ (intern (format "emacsvox--advice-%s-after" target))
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'fill-object)
-       (emacsvox-speak-line)))))
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and speak after an interactive CC Mode formatting command."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'fill-object)
+         (emacsvox-speak-line)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
 (cl-loop
- for f in
+ for target in
  '(
    c-toggle-auto-hungry-state c-toggle-auto-newline
-   c-toggle-auto-state c-toggle-electric-state
-   c-toggle-hungry-state c-toggle-parse-state-debug
+   c-toggle-electric-state c-toggle-hungry-state c-toggle-parse-state-debug
    c-toggle-syntactic-indentation)
+ for function =
+ (intern (format "emacsvox--advice-%s-after" target))
+ for announcement = (symbol-name target)
  do
  (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'button)
-       (message   "Toggled %s"  ,(symbol-name f))))))
+  `(progn
+     (defun ,function (&rest _)
+       "Cue and report an interactive CC Mode state toggle."
+       (when (ems-interactive-p ',target)
+         (emacsvox-icon 'button)
+         (message "Toggled %s" ,announcement)))
+     (advice-add
+      ',target :after #',function '((name . emacsvox))))))
 
 ;;;  Additional keybindings:
 
@@ -471,4 +541,3 @@ and their meanings. ")
    ))
 
 (provide  'emacsvox-c)
-
