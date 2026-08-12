@@ -56,18 +56,17 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in 
- '(
-   racer-find-definition racer-find-definition-other-frame
-   racer-find-definition-other-window)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--racer-find-definition-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(racer-find-definition racer-find-definition-other-frame racer-find-definition-other-window)
+ do
+ (advice-add f :after #'ems--racer-find-definition-after))
 
 (defun ems--racer-describe-after (&rest _)
   "speak."

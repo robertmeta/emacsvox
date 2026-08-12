@@ -333,25 +333,19 @@ s   Sub-square Distribution.
 
 ;;;  advice motion:
 
-(cl-loop for f   in
-         '(
-           sudoku-move-point-left 
-           sudoku-move-point-leftmost 
-           sudoku-move-point-right 
-           sudoku-move-point-rightmost 
-           sudoku-move-point-up 
-           sudoku-move-point-upmost 
-           sudoku-move-point-down 
-           sudoku-move-point-downmost)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "Produce auditory output."
-             (when (ems-interactive-p)
+(defun ems--sudoku-move-point-left-after (&rest _)
+  "Produce auditory output."
+  (when (ems-interactive-p)
                (emacsvox-sudoku-speak-current-cell-value)
                (if (eq (get-text-property  (point) 'face) 'bold)
                    (emacsvox-icon 'item)
-                 (emacsvox-icon 'select-object))))))
+                 (emacsvox-icon 'select-object))))
+
+(cl-loop
+ for f in
+ '(sudoku-move-point-left sudoku-move-point-leftmost sudoku-move-point-right sudoku-move-point-rightmost sudoku-move-point-up sudoku-move-point-upmost sudoku-move-point-down sudoku-move-point-downmost)
+ do
+ (advice-add f :after #'ems--sudoku-move-point-left-after))
 
 ;;;  advice interaction:
 

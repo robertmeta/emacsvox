@@ -56,40 +56,33 @@
   (elscreen-tab-other-screen-face voice-smoothen)))
 
 ;;;  Advice interactive commands:
-(cl-loop
- for f in
- '(
-   elscreen-jump-0 elscreen-jump-1 elscreen-jump-2 elscreen-jump-3
-   elscreen-jump-4 elscreen-jump-5 elscreen-jump-6 elscreen-jump-7
-   elscreen-jump-8 elscreen-jump-9
-   elscreen-toggle elscreen-swap elscreen-select-and-goto
-   elscreen-previous elscreen-next elscreen-jump
-   elscreen-goto elscreen-find-file-read-only elscreen-find-file
-   elscreen-find-and-goto-by-buffer elscreen-execute-extended-command
-   elscreen-dired elscreen-clone elscreen-create)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--elscreen-jump-0-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'window-resize)
        (dtk-notify        
         (or
          (elscreen-get-screen-nickname  (elscreen-get-current-screen))
          (buffer-name)))
-       (emacsvox-speak-mode-line)))))
+       (emacsvox-speak-mode-line)))
+
+(cl-loop
+ for f in
+ '(elscreen-jump-0 elscreen-jump-1 elscreen-jump-2 elscreen-jump-3 elscreen-jump-4 elscreen-jump-5 elscreen-jump-6 elscreen-jump-7 elscreen-jump-8 elscreen-jump-9 elscreen-toggle elscreen-swap elscreen-select-and-goto elscreen-previous elscreen-next elscreen-jump elscreen-goto elscreen-find-file-read-only elscreen-find-file elscreen-find-and-goto-by-buffer elscreen-execute-extended-command elscreen-dired elscreen-clone elscreen-create)
+ do
+ (advice-add f :after #'ems--elscreen-jump-0-after))
+
+(defun ems--elscreen-kill-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'close-object)
+       (emacsvox-speak-mode-line)))
 
 (cl-loop
  for f in
  '(elscreen-kill elscreen-kill-others elscreen-kill-screen-and-buffers)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'close-object)
-       (emacsvox-speak-mode-line))))
- )
+ (advice-add f :after #'ems--elscreen-kill-after))
 
 ;;;  Override:  Display screen list
 

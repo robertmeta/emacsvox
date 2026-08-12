@@ -68,18 +68,17 @@
    ))
 
 ;;;  advice interactive commands
-(cl-loop for f in
-         '(muse-follow-name-at-point
-           muse-follow-name-at-point-other-window
-           muse-next-reference
-           muse-previous-reference)
-         do
-         (eval
-          `(defadvice   ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
+(defun ems--muse-follow-name-at-point-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
                (emacsvox-icon 'large-movement)
-               (emacsvox-speak-line)))))
+               (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(muse-follow-name-at-point muse-follow-name-at-point-other-window muse-next-reference muse-previous-reference)
+ do
+ (advice-add f :after #'ems--muse-follow-name-at-point-after))
 
 (provide 'emacsvox-muse)
 ;;;  end of file

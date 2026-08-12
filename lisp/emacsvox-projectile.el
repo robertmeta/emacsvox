@@ -66,27 +66,17 @@
 
 (advice-add 'projectile-vc :after #'ems--projectile-vc-after)
 
+(defun ems--projectile-ag-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(projectile-ag
-   projectile-cleanup-known-projects
-   projectile-clear-known-projects
-   projectile-compile-project
-   projectile-regenerate-tags
-   projectile-run-async-shell-command-in-root
-   projectile-run-command-in-root
-   projectile-run-project
-   projectile-run-shell-command-in-root
-   projectile-test-project
-   projectile-ibuffer
-   )
+ '(projectile-ag projectile-cleanup-known-projects projectile-clear-known-projects projectile-compile-project projectile-regenerate-tags projectile-run-async-shell-command-in-root projectile-run-command-in-root projectile-run-project projectile-run-shell-command-in-root projectile-test-project projectile-ibuffer)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--projectile-ag-after))
 (add-hook 'projectile-find-file-hook 'emacsvox-projectile-file-action)
 
 (defun ems--projectile-edit-dir-locals-after (&rest _)
@@ -97,16 +87,17 @@
 (advice-add 'projectile-edit-dir-locals :after
             #'ems--projectile-edit-dir-locals-after)
 
+(defun ems--projectile-run-shell-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-mode-line)
+       (emacsvox-icon 'open-object)))
+
 (cl-loop
  for f in
  '(projectile-run-shell projectile-run-eshell projectile-run-term)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-mode-line)
-       (emacsvox-icon 'open-object)))))
+ (advice-add f :after #'ems--projectile-run-shell-after))
 
 (provide 'emacsvox-projectile)
 ;;;  end of file

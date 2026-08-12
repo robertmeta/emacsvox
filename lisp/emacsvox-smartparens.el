@@ -119,76 +119,51 @@
 (advice-add 'sp-backward-kill-word :before
             #'ems--sp-backward-kill-word-before)
 
+(defun ems--sp-forward-sexp-around (orig-fun &rest args)
+  "Speak sexp after moving."
+  (if (not (ems-interactive-p))
+      (apply orig-fun args)
+    (let* ((start (point))
+           (end (line-end-position))
+           (emacsvox-show-point t)
+           (res (apply orig-fun args)))
+      (emacsvox-icon 'large-movement)
+      (cond
+       ((>= end (point))
+        (emacsvox-speak-region start (point)))
+       (t (emacsvox-speak-line)))
+      res)))
+
 (cl-loop
  for f in
  '(sp-forward-sexp sp-backward-sexp)
  do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Speak sexp after moving."
-     (if (ems-interactive-p)
-         (let ((start (point))
-               (end (line-end-position))
-               (emacsvox-show-point t))
-           ad-do-it
-           (emacsvox-icon 'large-movement)
-           (cond
-            ((>= end (point))
-             (emacsvox-speak-region start (point)))
-            (t (emacsvox-speak-line))))
-       ad-do-it)
-     ad-return-value)))
+ (advice-add f :around #'ems--sp-forward-sexp-around))
 
-(cl-loop
- for f in
- '(
-   sp-kill-whole-line sp-kill-region sp-backward-kill-sexp
-   sp-splice-sexp-killing-around sp-splice-sexp-killing-backward
-   sp-splice-sexp-killing-forward sp-kill-sexp sp-kill-hybrid-sexp
-   sp-copy-sexp sp--kill-or-copy-region)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--sp-kill-whole-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-current-kill)
-       (emacsvox-icon 'delete-object)))))
+       (emacsvox-icon 'delete-object)))
 
 (cl-loop
  for f in
- '(
-   sp-absorb-sexp sp-emit-sexp
-   sp-add-to-next-sexp sp-add-to-previous-sexp
-   sp-backward-barf-sexp sp-forward-barf-sexp sp-down-sexp sp-clone-sexp
-   sp-backward-up-sexp sp-select-next-thing sp-backward-symbol
-   sp-beginning-of-previous-sexp sp-beginning-of-next-sexp
-   sp-beginning-of-sexp sp-backward-slurp-sexp
-   sp-convolute-sexp sp-comment
-   sp-end-of-next-sexp sp-end-of-previous-sexp
-   sp-extract-before-sexp sp-extract-after-sexp
-   sp-forward-parallel-sexp sp-backward-parallel-sexp
-   sp-forward-slurp-sexp sp-backward-unwrap-sexp
-   sp-forward-symbol sp-mark-sexp
-   sp-highlight-current-sexp sp-forward-whitespace
-   sp-html-previous-tag sp-html-next-tag
-   sp-next-sexp sp-previous-sexp
-   sp-raise-sexp
-   sp-rewrap-sexp sp-swap-enclosing-sexp
-   sp-ruby-forward-sexp sp-ruby-backward-sexp
-   sp-select-next-thing sp-select-previous-thing
-   sp-select-next-thing-exchange sp-end-of-sexp
-   sp-split-sexp sp-join-sexp
-   sp-transpose-sexp
-   sp-unwrap-sexp sp-backward-down-sexp
-   sp-up-sexp)
+ '(sp-kill-whole-line sp-kill-region sp-backward-kill-sexp sp-splice-sexp-killing-around sp-splice-sexp-killing-backward sp-splice-sexp-killing-forward sp-kill-sexp sp-kill-hybrid-sexp sp-copy-sexp sp--kill-or-copy-region)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--sp-kill-whole-line-after))
+
+(defun ems--sp-absorb-sexp-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (let ((emacsvox-show-point t))
          (emacsvox-icon 'large-movement)
-         (emacsvox-speak-line))))))
+         (emacsvox-speak-line))))
+
+(cl-loop
+ for f in
+ '(sp-absorb-sexp sp-emit-sexp sp-add-to-next-sexp sp-add-to-previous-sexp sp-backward-barf-sexp sp-forward-barf-sexp sp-down-sexp sp-clone-sexp sp-backward-up-sexp sp-select-next-thing sp-backward-symbol sp-beginning-of-previous-sexp sp-beginning-of-next-sexp sp-beginning-of-sexp sp-backward-slurp-sexp sp-convolute-sexp sp-comment sp-end-of-next-sexp sp-end-of-previous-sexp sp-extract-before-sexp sp-extract-after-sexp sp-forward-parallel-sexp sp-backward-parallel-sexp sp-forward-slurp-sexp sp-backward-unwrap-sexp sp-forward-symbol sp-mark-sexp sp-highlight-current-sexp sp-forward-whitespace sp-html-previous-tag sp-html-next-tag sp-next-sexp sp-previous-sexp sp-raise-sexp sp-rewrap-sexp sp-swap-enclosing-sexp sp-ruby-forward-sexp sp-ruby-backward-sexp sp-select-next-thing sp-select-previous-thing sp-select-next-thing-exchange sp-end-of-sexp sp-split-sexp sp-join-sexp sp-transpose-sexp sp-unwrap-sexp sp-backward-down-sexp sp-up-sexp)
+ do
+ (advice-add f :after #'ems--sp-absorb-sexp-after))
 
 (provide 'emacsvox-smartparens)
 ;;;  end of file

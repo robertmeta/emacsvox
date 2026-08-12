@@ -49,18 +49,17 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in 
- '(
-   hide-lines hide-lines-show-all
-   hide-lines-matching hide-lines-not-matching)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--hide-lines-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'button)))))
+       (emacsvox-icon 'button)))
+
+(cl-loop
+ for f in
+ '(hide-lines hide-lines-show-all hide-lines-matching hide-lines-not-matching)
+ do
+ (advice-add f :after #'ems--hide-lines-after))
 
 (provide 'emacsvox-hide-lines)
 ;;;  end of file

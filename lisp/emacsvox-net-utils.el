@@ -48,20 +48,18 @@
 
 ;;;  advice
 
-(cl-loop
- for f in
- '(
-   arp route traceroute
-   ifconfig iwconfig ping netstat
-   dns-lookup-host nslookup-host)
- do
- (eval
-  `(defadvice ,f  (after emacsvox pre act comp)
-     "Speak output"
-     (when (ems-interactive-p)
+(defun ems--arp-after (&rest _)
+  "Speak output"
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
        (message "Displayed results of %s in other window"
-                (quote ,f))))))
+                (quote ,f))))
+
+(cl-loop
+ for f in
+ '(arp route traceroute ifconfig iwconfig ping netstat dns-lookup-host nslookup-host)
+ do
+ (advice-add f :after #'ems--arp-after))
 
 (provide 'emacsvox-net-utils)
 

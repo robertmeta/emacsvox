@@ -54,16 +54,17 @@
 
 ;;;  advice window navigation
 
+(defun ems--windmove-left-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-mode-line)))
+
 (cl-loop
  for f in
  '(windmove-left windmove-right windmove-up windmove-down)
  do
- (eval
-  `(defadvice  ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--windmove-left-after))
 
 (provide 'emacsvox-windmove)
 ;;;  end of file

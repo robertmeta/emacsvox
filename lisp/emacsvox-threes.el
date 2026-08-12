@@ -200,15 +200,16 @@
   (interactive)
   (message (format "Score: %s" (number-to-string (threes-cells-score)))))
 
+(defun ems--threes-up-after (&rest _)
+  "speak"
+  (when (ems-interactive-p)
+       (emacsvox-threes-speak-board)))
+
 (cl-loop
  for f in
  '(threes-up threes-down threes-left threes-right)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak"
-     (when (ems-interactive-p)
-       (emacsvox-threes-speak-board)))))
+ (advice-add f :after #'ems--threes-up-after))
 
 (defun ems--threes-check-before-move-before (&rest _)
   "Cache max"

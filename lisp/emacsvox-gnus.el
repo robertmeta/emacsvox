@@ -184,21 +184,17 @@ instead you hear only the first screenful."
 
 ;;;   Newsgroup selection
 
+(defun ems--gnus-group-select-group-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   gnus-group-select-group gnus-group-first-unread-group
-   gnus-group-read-group
-   gnus-group-prev-group gnus-group-next-group
-   gnus-group-prev-unread-group  gnus-group-next-unread-group
-   gnus-group-get-new-news-this-group)
+ '(gnus-group-select-group gnus-group-first-unread-group gnus-group-read-group gnus-group-prev-group gnus-group-next-group gnus-group-prev-unread-group gnus-group-next-unread-group gnus-group-get-new-news-this-group)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--gnus-group-select-group-after))
 
 (defun ems--gnus-group-unsubscribe-current-group-after (&rest _)
   "Produce an auditory icon indicating\nthis group is being deselected."
@@ -295,27 +291,24 @@ instead you hear only the first screenful."
             #'ems--gnus-group-customize-before)
 
 ;;;   summary mode 
+(defun ems--gnus-summary-clear-mark-backward-around (orig-fun &rest args)
+  "Speak the article  line.
+ Produce an auditory icon if possible."
+  (let* ((saved-point (point))
+         (res (apply orig-fun args)))
+    (when (ems-interactive-p)
+      (if (= saved-point (point))
+          (emacsvox-pip "No more articles")
+        (progn 
+          (emacsvox-icon 'mark-object)
+          (emacsvox-gnus-summary-speak-subject))))
+    res))
+
 (cl-loop
  for f in
- '(
-   gnus-summary-clear-mark-backward gnus-summary-clear-mark-forward
-   gnus-summary-mark-as-dormant gnus-summary-mark-as-expirable
-   gnus-summary-mark-as-processable
-   gnus-summary-tick-article-backward gnus-summary-tick-article-forward
-   ) do
- (eval
-  `(defadvice   ,f (around  emacsvox pre act comp)
-     "Speak the article  line.
- Produce an auditory icon if possible."
-     (let ((saved-point (point)))
-       ad-do-it
-       (when (ems-interactive-p)
-         (if (= saved-point (point))
-             (emacsvox-pip "No more articles")
-           (progn 
-             (emacsvox-icon 'mark-object)
-             (emacsvox-gnus-summary-speak-subject))))
-       ad-return-value))))
+ '(gnus-summary-clear-mark-backward gnus-summary-clear-mark-forward gnus-summary-mark-as-dormant gnus-summary-mark-as-expirable gnus-summary-mark-as-processable gnus-summary-tick-article-backward gnus-summary-tick-article-forward)
+ do
+ (advice-add f :around #'ems--gnus-summary-clear-mark-backward-around))
 
 (defun ems--gnus-summary-unmark-as-processable-after (&rest _)
   "Speak the line.\n Produce an auditory icon if possible."
@@ -335,18 +328,18 @@ instead you hear only the first screenful."
 (advice-add 'gnus-summary-delete-article :after
             #'ems--gnus-summary-delete-article-after)
 
+(defun ems--gnus-summary-catchup-to-here-after (&rest _)
+  "Speak the line.
+ Produce an auditory icon if possible."
+  (when (ems-interactive-p)
+       (emacsvox-icon  'mark-object)
+       (emacsvox-gnus-summary-speak-subject)))
+
 (cl-loop
  for f in
- '(
-   gnus-summary-catchup-to-here gnus-summary-catchup-from-here
-   ) do
- (eval
-  `(defadvice  ,f (after emacsvox pre act comp)
-     "Speak the line.
- Produce an auditory icon if possible."
-     (when (ems-interactive-p)
-       (emacsvox-icon  'mark-object)
-       (emacsvox-gnus-summary-speak-subject)))))
+ '(gnus-summary-catchup-to-here gnus-summary-catchup-from-here)
+ do
+ (advice-add f :after #'ems--gnus-summary-catchup-to-here-after))
 
 (defun ems--gnus-summary-select-article-buffer-after (&rest _)
   "Speak the modeline.\nIndicate change of selection with\n  an auditory icon if possible."
@@ -927,15 +920,16 @@ Helps to prevent words from being spelled instead of spoken."
 
 ;;;  server mode:
 
+(defun ems--gnus-server-edit-buffer-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-mode-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(gnus-server-edit-buffer gnus-group-enter-server-mode gnus-browse-exit)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--gnus-server-edit-buffer-after))
 
 ;;;  Async Gnus:
 

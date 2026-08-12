@@ -56,16 +56,17 @@
 
 ;;;  Interactive Commands:
 
+(defun ems--github-explorer-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-mode-line)
+       (emacsvox-icon 'open-object)))
+
 (cl-loop
- for f in 
+ for f in
  '(github-explorer github-explorer-at-point)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-mode-line)
-       (emacsvox-icon 'open-object)))))
+ (advice-add f :after #'ems--github-explorer-after))
 
 (defun ems--gh-explorer-nav (direction)
   "Move forward/back based on `direction' and speak current entry."

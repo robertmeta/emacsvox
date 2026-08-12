@@ -170,18 +170,19 @@ Interactive PREFIX arg means toggle the global default value. ")
 (advice-add 'comint-delete-output :after
             #'ems--comint-delete-output-after)
 
+(defun ems--comint-history-isearch-backward-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (save-excursion
+         (comint-bol-or-process-mark)
+         (emacsvox-icon 'select-object)
+         (emacsvox-speak-line 1))))
+
 (cl-loop
  for f in
  '(comint-history-isearch-backward comint-history-isearch-backward-regexp)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (save-excursion
-         (comint-bol-or-process-mark)
-         (emacsvox-icon 'select-object)
-         (emacsvox-speak-line 1))))))
+ (advice-add f :after #'ems--comint-history-isearch-backward-after))
 
 (defun ems--comint-clear-buffer-after (&rest _)
   "speak."
@@ -191,22 +192,20 @@ Interactive PREFIX arg means toggle the global default value. ")
 (advice-add 'comint-clear-buffer :after
             #'ems--comint-clear-buffer-after)
 
-(defun ems--comint-magic-space-around (orig-fun &rest args)
+(defun ems--comint-magic-space-around (orig-fun &optional arg &rest more-args)
   "Speak word or completion."
-  (let ((result (apply orig-fun args)))
-    (cond
-     ((ems-interactive-p)
-      (ems-with-messages-silenced
-       (let ((orig (point)) (count (ad-get-arg 0)))
-         (setq count (or count 1)) (apply orig-fun args)
-         (cond
-          ((= (point) (+ count orig))
-           (save-excursion (forward-word -1) (emacsvox-speak-word)))
-          (t (emacsvox-icon 'complete)
-             (emacsvox-speak-region (comint-line-beginning-position)
-                                    (point)))))))
-     (t (apply orig-fun args)))
-    result))
+  (if (not (ems-interactive-p))
+      (apply orig-fun arg more-args)
+    (let* ((orig (point))
+           (count (or arg 1))
+           (res (ems-with-messages-silenced (apply orig-fun arg more-args))))
+      (cond
+       ((= (point) (+ count orig))
+        (save-excursion (forward-word -1) (emacsvox-speak-word)))
+       (t (emacsvox-icon 'complete)
+          (emacsvox-speak-region (comint-line-beginning-position)
+                                 (point))))
+      res)))
 
 (advice-add 'comint-magic-space :around
             #'ems--comint-magic-space-around)
@@ -288,20 +287,19 @@ Interactive PREFIX arg means toggle the global default value. ")
 
 (advice-add 'comint-accumulate :before #'ems--comint-accumulate-before)
 
-(cl-loop
- for f in
- '(
-   comint-next-matching-input-from-input
-   comint-previous-matching-input-from-input)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak matched input."
-     (when (ems-interactive-p)
+(defun ems--comint-next-matching-input-from-input-after (&rest _)
+  "Speak matched input."
+  (when (ems-interactive-p)
        (save-excursion
          (goto-char (comint-line-beginning-position))
          (emacsvox-speak-line 1))
-       (emacsvox-icon 'select-object)))))
+       (emacsvox-icon 'select-object)))
+
+(cl-loop
+ for f in
+ '(comint-next-matching-input-from-input comint-previous-matching-input-from-input)
+ do
+ (advice-add f :after #'ems--comint-next-matching-input-from-input-after))
 
 (defun ems--shell-forward-command-after (&rest _)
   "Speak  line."
@@ -356,17 +354,16 @@ Interactive PREFIX arg means toggle the global default value. ")
 (advice-add 'comint-copy-old-input :after
             #'ems--comint-copy-old-input-after)
 
-(defun ems--comint-output-filter-around (orig-fun &rest args)
+(defun ems--comint-output-filter-around (orig-fun process string &rest args)
   "Make comint speak its output.\nTry not to speak the shell prompt,\ninstead, always play an auditory icon when the shell prompt is displayed."
-  (let ((result (apply orig-fun args)))
-    (let
-        ((monitor emacsvox-comint-output-monitor)
-         (buffer (process-buffer (ad-get-arg 0)))
-         (output (ad-get-arg 1)))
-      (apply orig-fun args)
+  (let* ((monitor emacsvox-comint-output-monitor)
+         (buffer (process-buffer process))
+         (output string)
+         (res (apply orig-fun process string args)))
       (with-current-buffer buffer
         (when
-            (and (not (string-match "^" output))
+            (and (not (string-match "^
+" output))
                  comint-last-output-start
                  (or monitor (eq (window-buffer) buffer)))
           (let
@@ -376,25 +373,23 @@ Interactive PREFIX arg means toggle the global default value. ")
                   (or (looking-at shell-prompt-pattern)
                       (looking-at comint-prompt-regexp)))))
             (cond
-             ((and emacsvox-comint-autospeak (not prompt-p))
-              (dtk-speak output))
-             (prompt-p
-              (when emacsvox-comint-autospeak (emacsvox-icon 'item))))))
-        result))
-    result))
+           ((and emacsvox-comint-autospeak (not prompt-p))
+            (dtk-speak output))
+           (prompt-p
+            (when emacsvox-comint-autospeak (emacsvox-icon 'item)))))))
+    res))
 
 (advice-add 'comint-output-filter :around
             #'ems--comint-output-filter-around)
 
 (defun ems--comint-dynamic-list-completions-around
-    (orig-fun &rest args)
+    (orig-fun completions &optional common &rest args)
   "Replacing default with keyboard friendly completer"
   (let
-      ((completions (sort (ad-get-arg 0) 'string-lessp))
-       (_common (ad-get-arg 1)))
+      ((completions (sort completions 'string-lessp)))
     (with-output-to-temp-buffer "*Completions*"
       (display-completion-list completions))
-    (when nil (apply orig-fun args))
+    (when nil (apply orig-fun completions common args))
     (with-current-buffer (get-buffer "*Completions*")
       (set (make-local-variable 'comint-displayed-dynamic-completions)
            completions))

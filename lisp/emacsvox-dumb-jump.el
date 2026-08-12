@@ -51,25 +51,18 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in 
- '(
-   dumb-jump-back
-   dumb-jump-go
-   dumb-jump-go-current-window
-   dumb-jump-go-other-window
-   dumb-jump-go-prefer-external
-   dumb-jump-go-prefer-external-other-window
-   dumb-jump-go-prompt
-   )
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--dumb-jump-back-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (let ((emacsvox-show-point t))
          (emacsvox-speak-line))
-       (emacsvox-icon 'large-movement)))))
+       (emacsvox-icon 'large-movement)))
+
+(cl-loop
+ for f in
+ '(dumb-jump-back dumb-jump-go dumb-jump-go-current-window dumb-jump-go-other-window dumb-jump-go-prefer-external dumb-jump-go-prefer-external-other-window dumb-jump-go-prompt)
+ do
+ (advice-add f :after #'ems--dumb-jump-back-after))
 
 (provide 'emacsvox-dumb-jump)
 ;;;  end of file

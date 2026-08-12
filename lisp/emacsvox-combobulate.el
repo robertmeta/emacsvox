@@ -93,22 +93,17 @@
   (let ((emacsvox-show-point  t))
     (emacsvox-speak-line)))
 
-(cl-loop
- for f in 
- '(
-   combobulate-navigate-backward combobulate-navigate-beginning-of-defun
-   combobulate-navigate-down combobulate-navigate-down-list-maybe
-   combobulate-navigate-end-of-defun combobulate-navigate-forward
-   combobulate-navigate-logical-next combobulate-navigate-logical-previous
-   combobulate-navigate-next combobulate-navigate-previous
-   combobulate-navigate-up combobulate-navigate-up-list-maybe)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--combobulate-navigate-backward-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'select-object)
-       (emacsvox-combobulate-speak-line)))))
+       (emacsvox-combobulate-speak-line)))
+
+(cl-loop
+ for f in
+ '(combobulate-navigate-backward combobulate-navigate-beginning-of-defun combobulate-navigate-down combobulate-navigate-down-list-maybe combobulate-navigate-end-of-defun combobulate-navigate-forward combobulate-navigate-logical-next combobulate-navigate-logical-previous combobulate-navigate-next combobulate-navigate-previous combobulate-navigate-up combobulate-navigate-up-list-maybe)
+ do
+ (advice-add f :after #'ems--combobulate-navigate-backward-after))
 
 (provide 'emacsvox-combobulate)
 ;;;  end of file

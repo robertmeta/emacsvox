@@ -152,13 +152,12 @@
 (advice-add '*table--cell-newline-and-indent :around
             #'ems--*table--cell-newline-and-indent-around)
 
-(defun ems--*table--cell-open-line-after (&rest _)
+(defun ems--*table--cell-open-line-after (count &rest _)
   "speak."
   (when (ems-interactive-p)
-    (let ((count (ad-get-arg 0)))
-      (emacsvox-icon 'open-object)
-      (message "Opened %s blank line%s" (if (= count 1) "a" count)
-               (if (= count 1) "" "s")))))
+    (emacsvox-icon 'open-object)
+    (message "Opened %s blank line%s" (if (= count 1) "a" count)
+             (if (= count 1) "" "s"))))
 
 (advice-add '*table--cell-open-line :after
             #'ems--*table--cell-open-line-after)
@@ -176,17 +175,19 @@
        (cdr cell)))
      (t (error "Can't identify cell.")))))
 
-(cl-loop for f in
-         '(table-forward-cell table-backward-cell)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak by speaking current cell
+(defun ems--table-forward-cell-after (&rest _)
+  "speak by speaking current cell
       contents."
-             (when (ems-interactive-p)
+  (when (ems-interactive-p)
                (table--finish-delayed-tasks)
                (emacsvox-icon 'select-object)
-               (emacsvox-etable-speak-cell)))))
+               (emacsvox-etable-speak-cell)))
+
+(cl-loop
+ for f in
+ '(table-forward-cell table-backward-cell)
+ do
+ (advice-add f :after #'ems--table-forward-cell-after))
 
 (provide  'emacsvox-etable)
 

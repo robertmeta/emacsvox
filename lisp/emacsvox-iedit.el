@@ -83,41 +83,39 @@
 
 (advice-add 'iedit-done :after #'ems--iedit-done-after)
 
+(defun ems--iedit-prev-occurrence-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   iedit-prev-occurrence iedit-next-occurrence
-   iedit-goto-last-occurrence iedit-goto-first-occurrence
-   iedit-goto-last-occurrence)
+ '(iedit-prev-occurrence iedit-next-occurrence iedit-goto-last-occurrence iedit-goto-first-occurrence iedit-goto-last-occurrence)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--iedit-prev-occurrence-after))
+(defun ems--iedit-describe-bindings-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'help)))
+
 (cl-loop
  for f in
  '(iedit-describe-bindings iedit-describe-key iedit-describe-mode)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'help)))))
+ (advice-add f :after #'ems--iedit-describe-bindings-after))
+
+(defun ems--iedit-upcase-occurrences-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)
+       (message "%s"  ,(symbol-name f))))
 
 (cl-loop
  for f in
- '(
-   iedit-upcase-occurrences iedit-downcase-occurrences
-   iedit-blank-occurrences iedit-delete-occurrences)
+ '(iedit-upcase-occurrences iedit-downcase-occurrences iedit-blank-occurrences iedit-delete-occurrences)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)
-       (message "%s"  ,(symbol-name f))))))
+ (advice-add f :after #'ems--iedit-upcase-occurrences-after))
 
 (defun ems--iedit-show/hide-unmatched-lines-after (&rest _)
   "speak."

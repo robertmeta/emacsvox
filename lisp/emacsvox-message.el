@@ -68,16 +68,17 @@
    (message-separator voice-bolden-extra)))
 
 ;;;   advice interactive commands
+(defun ems--message-send-after (&rest _)
+  "Provide auditory context"
+  (when  (ems-interactive-p)
+       (emacsvox-speak-mode-line)
+       (emacsvox-icon 'close-object)))
+
 (cl-loop
  for f in
  '(message-send message-send-and-exit)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Provide auditory context"
-     (when  (ems-interactive-p)
-       (emacsvox-speak-mode-line)
-       (emacsvox-icon 'close-object)))))
+ (advice-add f :after #'ems--message-send-after))
 
 (defun ems--message-goto-to-after (&rest _)
   "speak"

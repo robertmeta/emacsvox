@@ -75,11 +75,9 @@ many available corrections."
   :type 'number
   :group 'emacsvox-ispell)
 
-(defun ems--ispell-command-loop-before (&rest _)
+(defun ems--ispell-command-loop-before (choices _guess _word start end &rest _)
   "Speak the line containing the incorrect word.\n Then speak the possible corrections. "
-  (let
-      ((choices (ad-get-arg 0)) (line nil) (pos "")
-       (start (ad-get-arg 3)) (end (ad-get-arg 4)))
+  (let ((line nil) (pos ""))
     (setq line
           (ems-set-personality-temporarily start end voice-bolden
                                            (buffer-substring
@@ -104,12 +102,12 @@ many available corrections."
 
 (defun ems--ispell-comments-and-strings-around (orig-fun &rest args)
   "Stop chatter by turning off messages"
-  (cond
-   ((ems-interactive-p)
-    (let ((dtk-stop-immediately t))
-      (ems-with-messages-silenced ad-do-it)
-      (emacsvox-icon 'task-done)))
-   (t ad-do-it)))
+  (if (not (ems-interactive-p))
+      (apply orig-fun args)
+    (let* ((dtk-stop-immediately t)
+           (res (ems-with-messages-silenced (apply orig-fun args))))
+      (emacsvox-icon 'task-done)
+      res)))
 
 (advice-add 'ispell-comments-and-strings :around
             #'ems--ispell-comments-and-strings-around)
@@ -123,20 +121,20 @@ many available corrections."
 
 ;;;   Advice top-level ispell commands:
 
+(defun ems--ispell-buffer-around (orig-fun &rest args)
+  "Produce auditory icons for ispell."
+  (if (not (ems-interactive-p))
+      (apply orig-fun args)
+    (let* ((dtk-stop-immediately t)
+           (res (ems-with-messages-silenced (apply orig-fun args))))
+      (emacsvox-icon 'task-done)
+      res)))
+
 (cl-loop
  for f in
  '(ispell-buffer ispell-region)
  do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Produce auditory icons for ispell."
-     (cond
-      ((ems-interactive-p)
-       (let ((dtk-stop-immediately t))
-         (ems-with-messages-silenced ad-do-it)
-         (emacsvox-icon 'task-done)))
-      (t ad-do-it))
-     ad-return-value)))
+ (advice-add f :around #'ems--ispell-buffer-around))
 
 (defun ems--ispell-word-around (orig-fun &rest args)
   "Produce auditory icons for ispell."

@@ -69,38 +69,42 @@
   (let ((msg (elt (popup-list popup) (popup-cursor popup))))
     (message msg)))
 
-(defun ems--popup-menu-event-loop-around (orig-fun &rest args)
+(defun ems--popup-menu-event-loop-around (orig-fun menu &rest args)
   "speak." (emacsvox-icon 'open-object)
-  (emacsvox-popup-speak-item (ad-get-arg 0)) (apply orig-fun args)
-  (emacsvox-icon 'close-object))
+  (emacsvox-popup-speak-item menu)
+  (let ((res (apply orig-fun menu args)))
+    (emacsvox-icon 'close-object)
+    res))
 
 (advice-add 'popup-menu-event-loop :around
             #'ems--popup-menu-event-loop-around)
 
-(defun ems--popup-menu-read-key-sequence-before (&rest _)
+(defun ems--popup-menu-read-key-sequence-before (_keymap &optional prompt &rest _)
   "Speak our prompt."
-  (when (sit-for 2) (dtk-speak (or (ad-get-arg 1) "Menu:"))))
+  (when (sit-for 2) (dtk-speak (or prompt "Menu:"))))
 
 (advice-add 'popup-menu-read-key-sequence :before
             #'ems--popup-menu-read-key-sequence-before)
+
+(defun ems--popup-next-after (&rest _)
+  (emacsvox-icon 'select-object)
+     (emacsvox-popup-speak-item (ad-get-arg 0)))
 
 (cl-loop
  for f in
  '(popup-next popup-previous)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     (emacsvox-icon 'select-object)
-     (emacsvox-popup-speak-item (ad-get-arg 0)))))
+ (advice-add f :after #'ems--popup-next-after))
+
+(defun ems--popup-page-next-after (&rest _)
+  (emacsvox-icon 'scroll)
+     (emacsvox-popup-speak-item (ad-get-arg 0)))
 
 (cl-loop
  for f in
  '(popup-page-next popup-page-previous)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     (emacsvox-icon 'scroll)
-     (emacsvox-popup-speak-item (ad-get-arg 0)))))
+ (advice-add f :after #'ems--popup-page-next-after))
 
 (defun ems--popup-menu-show-help-after (&rest _)
   "Speak help if available."

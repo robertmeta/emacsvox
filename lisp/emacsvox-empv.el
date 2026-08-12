@@ -134,19 +134,17 @@
 
 ;;; Interactive Commands:
 
+(defun ems--aempv-current-loop-off-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (dtk-stop 'all)
+       (emacsvox-icon 'button)))
+
 (cl-loop
  for f in
- '(
-   aempv-current-loop-off empv-current-loop-on empv-lyrics-current
-   empv-toggle empv-pause
-   empv-file-loop-off empv-file-loop-on
-   empv-playlist-loop-off empv-playlist-loop-on) do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (dtk-stop 'all)
-       (emacsvox-icon 'button)))))
+ '(aempv-current-loop-off empv-current-loop-on empv-lyrics-current empv-toggle empv-pause empv-file-loop-off empv-file-loop-on empv-playlist-loop-off empv-playlist-loop-on)
+ do
+ (advice-add f :after #'ems--aempv-current-loop-off-after))
 
 (defun ems--empv-lyrics-display-mode-after (&rest _)
   "speak."
@@ -205,17 +203,16 @@
   (add-to-history 'emacsvox-empv-history url emacsvox-empv-history-max)
   (empv-play url))
 
-(defun ems--empv-play-before (&rest _)
+(defun ems--empv-play-before (url &rest _)
   "Record history."
   (cl-declare
    (special emacsvox-empv-history-max emacsvox-empv-history))
-  (let ((url (ad-get-arg 0)))
-    (when
-        (and url (stringp url)
-             (string-prefix-p (emacsvox-google-result-url-prefix) url))
-      (setq url (emacsvox-google-canonicalize-result-url url)))
-    (add-to-history 'emacsvox-empv-history url
-                    emacsvox-empv-history-max)))
+  (when
+      (and url (stringp url)
+           (string-prefix-p (emacsvox-google-result-url-prefix) url))
+    (setq url (emacsvox-google-canonicalize-result-url url)))
+  (add-to-history 'emacsvox-empv-history url
+                  emacsvox-empv-history-max))
 
 (advice-add 'empv-play :before #'ems--empv-play-before)
 

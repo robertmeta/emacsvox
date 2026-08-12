@@ -58,16 +58,17 @@
 
 ;;;  Advice Interactive Commands:
 
+(defun ems--treesit-end-of-defun-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(treesit-end-of-defun treesit-beginning-of-defun treesit-forward-sexp)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--treesit-end-of-defun-after))
 
 ;;; Interactive Helpers:
 

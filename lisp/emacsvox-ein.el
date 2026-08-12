@@ -138,17 +138,17 @@
 
 ;;; tb (traceback):
 
-(cl-loop
- for f in 
- '(ein:tb-jump-to-source-at-point-command
-   ein:tb-next-item ein:tb-prev-item)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--ein:tb-jump-to-source-at-point-command-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'large-movement)))))
+       (emacsvox-icon 'large-movement)))
+
+(cl-loop
+ for f in
+ '(ein:tb-jump-to-source-at-point-command ein:tb-next-item ein:tb-prev-item)
+ do
+ (advice-add f :after #'ems--ein:tb-jump-to-source-at-point-command-after))
 
 (defun ems--ein:tb-show-km-after (&rest _)
   "speak."
@@ -159,96 +159,92 @@
 
 ;;; pytools:
 
+(defun ems--ein:pytools-jump-back-command-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(ein:pytools-jump-back-command ein:pytools-jump-to-source-command)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--ein:pytools-jump-back-command-after))
 
 ;;;  Worksheets:
 
-(cl-loop
- for f in
- '(
-   ein:worksheet-clear-all-output-km ein:worksheet-delete-cell
-   ein:worksheet-clear-output-km ein:worksheet-kill-cell-km) do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--ein:worksheet-clear-all-output-km-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'delete-object)))))
+       (emacsvox-icon 'delete-object)))
 
 (cl-loop
  for f in
- '(
-   ein:worksheet-execute-all-cells 
-   ein:worksheet-execute-cell-and-insert-below
-   ein:worksheet-execute-cell-and-insert-below-km
-   ein:worksheet-execute-cell-and-goto-next-km
-   ein:worksheet-execute-cell-and-goto-next
-   ein:worksheet-execute-cell ein:worksheet-execute-cell-km) do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ '(ein:worksheet-clear-all-output-km ein:worksheet-delete-cell ein:worksheet-clear-output-km ein:worksheet-kill-cell-km)
+ do
+ (advice-add f :after #'ems--ein:worksheet-clear-all-output-km-after))
+
+(defun ems--ein:worksheet-execute-all-cells-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'task-done)
        (forward-line 1)
-       (message "Press C-c . to hear the results.")))))
+       (message "Press C-c . to hear the results.")))
 
 (cl-loop
  for f in
- '(
-   ein:worksheet-goto-next-input-km ein:worksheet-goto-prev-input-km
-   ein:worksheet-goto-next-input ein:worksheet-goto-prev-input)
+ '(ein:worksheet-execute-all-cells ein:worksheet-execute-cell-and-insert-below ein:worksheet-execute-cell-and-insert-below-km ein:worksheet-execute-cell-and-goto-next-km ein:worksheet-execute-cell-and-goto-next ein:worksheet-execute-cell ein:worksheet-execute-cell-km)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--ein:worksheet-execute-all-cells-after))
+
+(defun ems--ein:worksheet-goto-next-input-km-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'large-movement)
-       (emacsvox-ein-speak-current-cell)))))
+       (emacsvox-ein-speak-current-cell)))
 
 (cl-loop
  for f in
- '(
-   ein:worksheet-yank-cell
-   ein:worksheet-insert-cell-above-km ein:worksheet-insert-cell-above
-   ein:worksheet-insert-cell-below-km ein:worksheet-insert-cell-below)
+ '(ein:worksheet-goto-next-input-km ein:worksheet-goto-prev-input-km ein:worksheet-goto-next-input ein:worksheet-goto-prev-input)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--ein:worksheet-goto-next-input-km-after))
+
+(defun ems--ein:worksheet-yank-cell-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'yank-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
- for f in 
- '(ein:worksheet-toggle-cell-type ein ein:worksheet-change-cell-type-km )
+ for f in
+ '(ein:worksheet-yank-cell ein:worksheet-insert-cell-above-km ein:worksheet-insert-cell-above ein:worksheet-insert-cell-below-km ein:worksheet-insert-cell-below)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--ein:worksheet-yank-cell-after))
+
+(defun ems--ein:worksheet-toggle-cell-type-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-ein-sox-gen (ein:cell-type (ein:worksheet-get-current-cell)))
-       (dtk-speak (ein:cell-type (ein:worksheet-get-current-cell)))))))
+       (dtk-speak (ein:cell-type (ein:worksheet-get-current-cell)))))
 
 (cl-loop
- for f in 
+ for f in
+ '(ein:worksheet-toggle-cell-type ein ein:worksheet-change-cell-type-km)
+ do
+ (advice-add f :after #'ems--ein:worksheet-toggle-cell-type-after))
+
+(defun ems--ein:worksheet-insert-cell-below-km-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
  '(ein:worksheet-insert-cell-below-km ein:worksheet-insert-cell-above-km)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--ein:worksheet-insert-cell-below-km-after))
 
 (defun ems--ein:worksheet-move-cell-up-km-after (&rest _)
   "speak."
@@ -274,21 +270,22 @@
 (advice-add 'ein:worksheet-yank-cell :after
             #'ems--ein:worksheet-yank-cell-after)
 
-(cl-loop
- for f in 
- '(ein:worksheet-toggle-output-km ein:worksheet-set-output-visibility-all-km)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--ein:worksheet-toggle-output-km-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (let  ((state (slot-value (ein:worksheet-get-current-cell)
                                  'collapsed )))
          (emacsvox-icon
           (if state 'close-object 'open-object))
          (dtk-speak
           (format "%s output"
-                  (if state "Hid" "Showing"))))))))
+                  (if state "Hid" "Showing"))))))
+
+(cl-loop
+ for f in
+ '(ein:worksheet-toggle-output-km ein:worksheet-set-output-visibility-all-km)
+ do
+ (advice-add f :after #'ems--ein:worksheet-toggle-output-km-after))
 
 (defun ems--ein:worksheet-split-cell-at-point-after (&rest _)
   "speak."
@@ -308,37 +305,29 @@
 
 ;;; Notebooks:
 
-(cl-loop
- for f in 
- '(ein:notebook-save-to-command ein:notebook-save-notebook-command)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--ein:notebook-save-to-command-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (message "Saving notebook")
-       (emacsvox-icon 'save-object)))))
+       (emacsvox-icon 'save-object)))
 
 (cl-loop
- for f in 
- '(
-   ein:notebook-worksheet-insert-next ein:notebook-worksheet-insert-prev
-   ein:notebook-worksheet-move-next ein:notebook-worksheet-move-prev
-   ein:notebook-worksheet-open-1th ein:notebook-worksheet-open-2th
-   ein:notebook-worksheet-open-3th ein:notebook-worksheet-open-4th
-   ein:notebook-worksheet-open-5th ein:notebook-worksheet-open-6th
-   ein:notebook-worksheet-open-7th ein:notebook-worksheet-open-8th
-   ein:notebook-worksheet-open-last ein:notebook-worksheet-open-next
-   ein:notebook-worksheet-open-next-or-first
-   ein:notebook-worksheet-open-next-or-new
-   ein:notebook-worksheet-open-prev ein:notebook-worksheet-open-prev-or-last)
+ for f in
+ '(ein:notebook-save-to-command ein:notebook-save-notebook-command)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--ein:notebook-save-to-command-after))
+
+(defun ems--ein:notebook-worksheet-insert-next-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-mode-line)))))
+       (emacsvox-speak-mode-line)))
+
+(cl-loop
+ for f in
+ '(ein:notebook-worksheet-insert-next ein:notebook-worksheet-insert-prev ein:notebook-worksheet-move-next ein:notebook-worksheet-move-prev ein:notebook-worksheet-open-1th ein:notebook-worksheet-open-2th ein:notebook-worksheet-open-3th ein:notebook-worksheet-open-4th ein:notebook-worksheet-open-5th ein:notebook-worksheet-open-6th ein:notebook-worksheet-open-7th ein:notebook-worksheet-open-8th ein:notebook-worksheet-open-last ein:notebook-worksheet-open-next ein:notebook-worksheet-open-next-or-first ein:notebook-worksheet-open-next-or-new ein:notebook-worksheet-open-prev ein:notebook-worksheet-open-prev-or-last)
+ do
+ (advice-add f :after #'ems--ein:notebook-worksheet-insert-next-after))
 
 (defun ems--ein:notebook-jump-to-opened-notebook-after (&rest _)
   "speak."
@@ -358,16 +347,17 @@
 
 ;;; Notebooklists:
 
+(defun ems--ein:notebooklist-prev-item-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(ein:notebooklist-prev-item ein:notebooklist-next-item)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--ein:notebooklist-prev-item-after))
 
 (provide 'emacsvox-ein)
 ;;;  end of file

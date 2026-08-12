@@ -51,25 +51,17 @@
 
 ;;;   Advice interactive commands:
 
+(defun ems--todo-forward-item-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(todo-forward-item
-   todo-backward-item
-   todo-next-item
-   todo-previous-item
-   todo-forward-category
-   todo-backward-category
-   todo-next-category
-   todo-previous-category
-   todo-jump-to-category
-   )
+ '(todo-forward-item todo-backward-item todo-next-item todo-previous-item todo-forward-category todo-backward-category todo-next-category todo-previous-category todo-jump-to-category)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--todo-forward-item-after))
 
 (defun ems--todo-save-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-icon 'save-object)))

@@ -97,19 +97,17 @@
 
 (advice-add 'syslog-boot-start :after #'ems--syslog-boot-start-after)
 
-(cl-loop
- for f in 
- '(
-   syslog-append-files syslog-prepend-files 
-   syslog-next-file syslog-previous-file
-   syslog-move-next-file syslog-move-previous-file syslog-open-files)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--syslog-append-files-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-mode-line)
-       (emacsvox-icon 'open-object)))))
+       (emacsvox-icon 'open-object)))
+
+(cl-loop
+ for f in
+ '(syslog-append-files syslog-prepend-files syslog-next-file syslog-previous-file syslog-move-next-file syslog-move-previous-file syslog-open-files)
+ do
+ (advice-add f :after #'ems--syslog-append-files-after))
 
 ;;; keymap setup:
 (defun emacsvox-syslog-setup ()

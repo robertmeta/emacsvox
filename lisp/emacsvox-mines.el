@@ -229,18 +229,16 @@ to beginning of board before searching."
 
 (advice-add 'mines :after #'ems--mines-after)
 
+(defun ems--mines-go-down-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-mines-speak-cell)))
+
 (cl-loop
  for f in
- '(mines-go-down
-   mines-go-left
-   mines-go-right
-   mines-go-up)
+ '(mines-go-down mines-go-left mines-go-right mines-go-up)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-mines-speak-cell)))))
+ (advice-add f :after #'ems--mines-go-down-after))
 
 (defun ems--mines-dig-after (&rest _)
   "speak."

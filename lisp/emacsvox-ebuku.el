@@ -63,28 +63,28 @@
 
 (advice-add 'ebuku-search :before #'ems--ebuku-search-before)
 
-(defun ems--ebuku--search-helper-before (&rest _)
-  "Avoid exclude to speed up interaction.." (ad-set-arg 3 ""))
+(defun ems--ebuku--search-helper-around (orig-fun &optional q type limit _exclude &rest args)
+  "Avoid exclude to speed up interaction.."
+  (apply orig-fun q type limit "" args))
 
-(advice-add 'ebuku--search-helper :before
-            #'ems--ebuku--search-helper-before)
+(advice-add 'ebuku--search-helper :around
+            #'ems--ebuku--search-helper-around)
 
-(cl-loop
- for f in
- '(
-   ebuku-search-on-any ebuku-search-on-all
-   ebuku-search ebuku-search-on-reg ebuku-search-on-tag)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--ebuku-search-on-any-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'task-done)
        (emacsvox-speak-line)
        (save-excursion
          (forward-line -2)
          (forward-word 2)
-         (dtk-notify (word-at-point)))))))
+         (dtk-notify (word-at-point)))))
+
+(cl-loop
+ for f in
+ '(ebuku-search-on-any ebuku-search-on-all ebuku-search ebuku-search-on-reg ebuku-search-on-tag)
+ do
+ (advice-add f :after #'ems--ebuku-search-on-any-after))
 
 (defun ems--ebuku-show-all-after (&rest _)
   "speak."
@@ -101,16 +101,17 @@
 (advice-add 'ebuku-toggle-results-limit :after
             #'ems--ebuku-toggle-results-limit-after)
 
+(defun ems--ebuku-previous-bookmark-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-read-previous-line)))
+
 (cl-loop
  for f in
  '(ebuku-previous-bookmark ebuku-next-bookmark)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-read-previous-line)))))
+ (advice-add f :after #'ems--ebuku-previous-bookmark-after))
 
 (defun ems--ebuku-open-url-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-icon 'button)))

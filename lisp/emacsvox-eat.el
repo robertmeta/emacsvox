@@ -111,16 +111,17 @@
   eat-xterm-paste
   )
 
+(defun ems--eat-yank-around (orig-fun &rest args)
+  "Icon."
+  (let ((res (apply orig-fun args)))
+    (when (ems-interactive-p) (emacsvox-icon 'yank-object))
+    res))
+
 (cl-loop
- for f in 
+ for f in
  '(eat-yank eat-yank-from-kill-ring)
  do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Icon."
-     ad-do-it
-     (when (ems-interactive-p) (emacsvox-icon 'yank-object))
-     ad-return-value)))
+ (advice-add f :around #'ems--eat-yank-around))
 
 (defun ems--eat-reload-after (&rest _)
   "speak."
@@ -136,21 +137,17 @@
 
 (advice-add 'eat-reset :after #'ems--eat-reset-after)
 
+(defun ems--eat-blink-mode-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'button)
+       (message "%s " ,(symbol-name f))))
+
 (cl-loop
  for f in
- '(
-   eat-blink-mode eat-char-mode eat-emacs-mode
-   eat-eshell-char-mode eat-eshell-emacs-mode eat-eshell-mode
-   eat-eshell-semi-char-mode eat-eshell-visual-command-mode
-   eat-line-mode eat-mode eat-semi-char-mode
-   eat-trace-mode eat-trace-replay-mode)
+ '(eat-blink-mode eat-char-mode eat-emacs-mode eat-eshell-char-mode eat-eshell-emacs-mode eat-eshell-mode eat-eshell-semi-char-mode eat-eshell-visual-command-mode eat-line-mode eat-mode eat-semi-char-mode eat-trace-mode eat-trace-replay-mode)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'button)
-       (message "%s " ,(symbol-name f))))))
+ (advice-add f :after #'ems--eat-blink-mode-after))
 
 (defun ems--eat-after (&rest _)
   "speak."

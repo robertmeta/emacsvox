@@ -312,34 +312,33 @@
 
 (advice-add 'proced-unmark-all :after #'ems--proced-unmark-all-after)
 
-(cl-loop
- for f in
- '(proced proced-update)
- do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Update cache of field positions."
-     (let ((emacsvox-speak-messages nil))
+(defun ems--proced-around (orig-fun &rest args)
+  "Update cache of field positions."
+  (let ((emacsvox-speak-messages nil))
        ad-do-it
        (emacsvox-proced-update-fields)
        (emacsvox-proced-update-process-cache)
        (when (ems-interactive-p)
          (emacsvox-icon 'open-object)
-         (funcall-interactively #'emacsvox-speak-mode-line))))))
+         (funcall-interactively #'emacsvox-speak-mode-line))))
 
 (cl-loop
- for f  in
- '(proced-sort-pcpu proced-sort-start
-                    proced-sort-time proced-sort-interactive
-                    proced-sort-user  proced-sort-pmem
-                    proced-sort-pid)
+ for f in
+ '(proced proced-update)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Provide auditory feedbak."
-     (when (ems-interactive-p)
+ (advice-add f :around #'ems--proced-around))
+
+(defun ems--proced-sort-pcpu-after (&rest _)
+  "Provide auditory feedbak."
+  (when (ems-interactive-p)
        (emacsvox-proced-speak-this-field)
-       (emacsvox-icon 'task-done)))))
+       (emacsvox-icon 'task-done)))
+
+(cl-loop
+ for f in
+ '(proced-sort-pcpu proced-sort-start proced-sort-time proced-sort-interactive proced-sort-user proced-sort-pmem proced-sort-pid)
+ do
+ (advice-add f :after #'ems--proced-sort-pcpu-after))
 
 ;;;  additional commands:
 

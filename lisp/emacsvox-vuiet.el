@@ -65,44 +65,43 @@
 
 (advice-add 'vuiet-unlove-track :after #'ems--vuiet-unlove-track-after)
 
-(cl-loop
- for f in 
- '(
-   vuiet-playing-track-lyrics vuiet-loved-tracks-info
-   vuiet-playing-artist-info vuiet-playing-artist-lastfm-page
-   vuiet-album-info-search vuiet-artist-info
-   vuiet-artist-info-search vuiet-artist-lastfm-page)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--vuiet-playing-track-lyrics-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
- for f in 
- '(vuiet-disable-scrobbling vuiet-enable-scrobbling)
+ for f in
+ '(vuiet-playing-track-lyrics vuiet-loved-tracks-info vuiet-playing-artist-info vuiet-playing-artist-lastfm-page vuiet-album-info-search vuiet-artist-info vuiet-artist-info-search vuiet-artist-lastfm-page)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--vuiet-playing-track-lyrics-after))
+
+(defun ems--vuiet-disable-scrobbling-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon
         (if vuiet-scrobble-enabled 'on 'off))
        (dtk-speak (format "Turned %s scrobbling"
-                          (if vuiet-scrobble-enabled "on" "off")))))))
+                          (if vuiet-scrobble-enabled "on" "off")))))
 
 (cl-loop
- for f in 
+ for f in
+ '(vuiet-disable-scrobbling vuiet-enable-scrobbling)
+ do
+ (advice-add f :after #'ems--vuiet-disable-scrobbling-after))
+
+(defun ems--vuiet-player-volume-inc-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (dtk-notify
+        (format "Volume %s" (vuiet-player-volume)))))
+
+(cl-loop
+ for f in
  '(vuiet-player-volume-inc vuiet-player-volume-dec)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (dtk-notify
-        (format "Volume %s" (vuiet-player-volume)))))))
+ (advice-add f :after #'ems--vuiet-player-volume-inc-after))
 
 ;;; Additional Commands:
 (defun emacsvox-vuiet-track-info ()

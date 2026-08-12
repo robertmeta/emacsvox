@@ -73,46 +73,42 @@
 
 (advice-add 'view-mode :after #'ems--view-mode-after)
 
-(cl-loop
- for f in
- '(
-   View-exit-and-edit View-kill-and-leave View-quit-all View-quit)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--View-exit-and-edit-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'close-object)
-       (emacsvox-speak-mode-line)))))
+       (emacsvox-speak-mode-line)))
 
 (cl-loop
  for f in
- '(
-   view-buffer view-buffer-other-frame view-buffer-other-window
-   view-emacs-FAQ view-emacs-debugging ^ view-emacs-problems
-   view-emacs-todo view-external-packages
-   view-file-other-frame view-file-other-window
-   view-hello-file view-lossage ) do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak"
-     (when (ems-interactive-p)
+ '(View-exit-and-edit View-kill-and-leave View-quit-all View-quit)
+ do
+ (advice-add f :after #'ems--View-exit-and-edit-after))
+
+(defun ems--view-buffer-after (&rest _)
+  "Speak"
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-mode-line)))))
+       (emacsvox-speak-mode-line)))
 
 (cl-loop
  for f in
- '(
-   View-search-regexp-forward View-search-regexp-backward
-   View-search-last-regexp-backward View-search-last-regexp-forward
-   ) do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak"
-     (when (ems-interactive-p)
+ '(view-buffer view-buffer-other-frame view-buffer-other-window view-emacs-FAQ view-emacs-debugging ^ view-emacs-problems view-emacs-todo view-external-packages view-file-other-frame view-file-other-window view-hello-file view-lossage)
+ do
+ (advice-add f :after #'ems--view-buffer-after))
+
+(defun ems--View-search-regexp-forward-after (&rest _)
+  "speak"
+  (when (ems-interactive-p)
        (let ((emacsvox-show-point t))
          (emacsvox-speak-line))
-       (emacsvox-icon 'search-hit)))))
+       (emacsvox-icon 'search-hit)))
+
+(cl-loop
+ for f in
+ '(View-search-regexp-forward View-search-regexp-backward View-search-last-regexp-backward View-search-last-regexp-forward)
+ do
+ (advice-add f :after #'ems--View-search-regexp-forward-after))
 
 (cl-loop
  for f in

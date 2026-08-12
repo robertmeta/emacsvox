@@ -49,22 +49,17 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in 
- '(
-   orgalist--cycle-indentation orgalist-check-item orgalist-cycle-bullet
-   orgalist-indent-item orgalist-indent-item-tree orgalist-insert-item
-   orgalist-insert-radio-list orgalist-move-item-down orgalist-move-item-up
-   orgalist-next-item orgalist-outdent-item orgalist-outdent-item-tree
-   orgalist-previous-item
-   )
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--orgalist--cycle-indentation-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'select-object)))))
+       (emacsvox-icon 'select-object)))
+
+(cl-loop
+ for f in
+ '(orgalist--cycle-indentation orgalist-check-item orgalist-cycle-bullet orgalist-indent-item orgalist-indent-item-tree orgalist-insert-item orgalist-insert-radio-list orgalist-move-item-down orgalist-move-item-up orgalist-next-item orgalist-outdent-item orgalist-outdent-item-tree orgalist-previous-item)
+ do
+ (advice-add f :after #'ems--orgalist--cycle-indentation-after))
 
 (provide 'emacsvox-orgalist)
 ;;;  end of file

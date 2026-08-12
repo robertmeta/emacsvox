@@ -194,154 +194,44 @@
 (advice-add 'py-comment-region :after #'ems--py-comment-region-after)
 
 ;;;   buffer navigation
-(cl-loop
- for f in
- '(
-   py-goto-block-or-clause-up py-goto-clause-up
-   py-previous-class py-previous-clause py-previous-def-or-class
-   py-forward-block
-   py-forward-block-bol
-   py-forward-block-or-clause
-   py-forward-block-or-clause-bol
-   py-forward-buffer
-   py-forward-class
-   py-forward-class-bol
-   py-forward-clause
-   py-forward-clause-bol
-   py-forward-comment
-   py-forward-decorator
-   py-forward-def-bol
-   py-forward-def-or-class-bol
-   py-forward-elif-block
-   py-forward-elif-block-bol
-   py-forward-else-block
-   py-forward-else-block-bol
-   py-forward-except-block
-   py-forward-except-block-bol
-   py-forward-expression
-   py-forward-for-block
-   py-forward-for-block-bol
-   py-forward-function
-   py-forward-if-block
-   py-forward-if-block-bol
-   py-forward-line
-   py-forward-minor-block
-   py-forward-minor-block-bol
-   py-forward-paragraph
-   py-forward-partial-expression
-   py-forward-section
-   py-forward-statement-bol
-   py-forward-statements
-   py-forward-top-level
-   py-forward-top-level-bol
-   py-forward-try-block
-   py-forward-try-block-bol
-   py-backward-block py-backward-block-bol
-   py-backward-block-or-clause py-backward-block-or-clause-bol
-   py-backward-class py-backward-class-bol
-   py-backward-clause py-backward-clause-bol
-   py-backward-comment py-backward-decorator py-backward-decorator-bol
-   py-backward-def-bol py-backward-def-or-class-bol
-   py-backward-elif-block py-backward-elif-block-bol
-   py-backward-else-block py-backward-else-block-bol
-   py-backward-except-block py-backward-except-block-bol
-   py-backward-expression py-backward-for-block py-backward-for-block-bol
-   py-backward-function py-backward-if-block py-backward-if-block-bol
-   py-backward-line py-backward-minor-block py-backward-minor-block-bol
-   py-backward-paragraph py-backward-partial-expression py-backward-same-level
-   py-backward-section py-backward-statement-bol py-backward-statements
-   py-backward-top-level py-backward-top-level-p
-   py-backward-try-block py-backward-try-block-bol
-   py-match-paren py-indent-or-complete
-   py-beginning py-beginning-of-block-bol
-   py-beginning-of-block-current-column
-   py-beginning-of-block-or-clause py-beginning-of-class
-   py-beginning-of-class-bol
-   py-beginning-of-clause-bol py-beginning-of-comment
-   py-beginning-of-declarations
-   py-beginning-of-decorator py-beginning-of-decorator-bol
-   py-beginning-of-expression py-beginning-of-line
-   py-beginning-of-list-pps
-   py-beginning-of-minor-block
-   py-beginning-of-partial-expression
-   py-beginning-of-section py-beginning-of-statement-bol
-   py-beginning-of-top-level
-   py-forward-declarations py-backward-declarations
-   py-down py-up
-   py-down-block py-down-block-bol
-   py-down-block-or-clause py-down-block-or-clause-bol
-   py-down-class py-down-class-bol
-   py-down-clause py-down-clause-bol
-   py-down-def py-down-def-bol
-   py-down-def-or-class py-down-def-or-class-bol
-   py-down-minor-block py-down-minor-block-bol
-   py-down-section py-down-section-bol
-   py-down-statement py-down-top-level
-   py-backward-statement py-forward-statement
-   py-goto-block-up  py-go-to-beginning-of-comment
-   py-end py-end-of-block-or-clause
-   py-end-of-class py-end-of-comment
-   py-end-of-decorator py-end-of-expression
-   py-end-of-line py-end-of-list-position
-   py-end-of-partial-expression py-end-of-section
-   py-end-of-statement-bol py-end-of-string
-   py-end-of-top-level
-   py-beginning-of-statement py-end-of-statement
-   py-beginning-of-block py-end-of-block
-   py-beginning-of-clause py-end-of-clause
-   py-next-statement py-previous-statement
-   py-backward-def py-forward-def
-   py-backward-def-or-class py-forward-def-or-class
-   py-beginning-of-def-or-class py-end-of-def-or-class)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak current statement after moving"
-     (when (ems-interactive-p)
+(defun ems--py-goto-block-or-clause-up-after (&rest _)
+  "Speak current statement after moving"
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'paragraph)))))
+       (emacsvox-icon 'paragraph)))
 
 (cl-loop
- for  f in
- '(
-   py-mark-class-bol py-mark-clause py-mark-clause-bol py-mark-comment
-   py-mark-comment-bol py-mark-def py-mark-def-bol
-   py-mark-def-or-class py-mark-def-or-class-bol py-mark-except-block
-   py-mark-except-block-bol py-mark-expression py-mark-expression-bol
-   py-mark-if-block py-mark-if-block-bol py-mark-line py-mark-line-bol
-   py-mark-minor-block py-mark-minor-block-bol py-mark-paragraph
-   py-mark-paragraph-bol py-mark-partial-expression
-   py-mark-partial-expression-bol py-mark-section py-mark-statement
-   py-mark-statement-bol py-mark-top-level py-mark-top-level-bol
-   py-mark-try-block py-mark-try-block-bol)
+ for f in
+ '(py-goto-block-or-clause-up py-goto-clause-up py-previous-class py-previous-clause py-previous-def-or-class py-forward-block py-forward-block-bol py-forward-block-or-clause py-forward-block-or-clause-bol py-forward-buffer py-forward-class py-forward-class-bol py-forward-clause py-forward-clause-bol py-forward-comment py-forward-decorator py-forward-def-bol py-forward-def-or-class-bol py-forward-elif-block py-forward-elif-block-bol py-forward-else-block py-forward-else-block-bol py-forward-except-block py-forward-except-block-bol py-forward-expression py-forward-for-block py-forward-for-block-bol py-forward-function py-forward-if-block py-forward-if-block-bol py-forward-line py-forward-minor-block py-forward-minor-block-bol py-forward-paragraph py-forward-partial-expression py-forward-section py-forward-statement-bol py-forward-statements py-forward-top-level py-forward-top-level-bol py-forward-try-block py-forward-try-block-bol py-backward-block py-backward-block-bol py-backward-block-or-clause py-backward-block-or-clause-bol py-backward-class py-backward-class-bol py-backward-clause py-backward-clause-bol py-backward-comment py-backward-decorator py-backward-decorator-bol py-backward-def-bol py-backward-def-or-class-bol py-backward-elif-block py-backward-elif-block-bol py-backward-else-block py-backward-else-block-bol py-backward-except-block py-backward-except-block-bol py-backward-expression py-backward-for-block py-backward-for-block-bol py-backward-function py-backward-if-block py-backward-if-block-bol py-backward-line py-backward-minor-block py-backward-minor-block-bol py-backward-paragraph py-backward-partial-expression py-backward-same-level py-backward-section py-backward-statement-bol py-backward-statements py-backward-top-level py-backward-top-level-p py-backward-try-block py-backward-try-block-bol py-match-paren py-indent-or-complete py-beginning py-beginning-of-block-bol py-beginning-of-block-current-column py-beginning-of-block-or-clause py-beginning-of-class py-beginning-of-class-bol py-beginning-of-clause-bol py-beginning-of-comment py-beginning-of-declarations py-beginning-of-decorator py-beginning-of-decorator-bol py-beginning-of-expression py-beginning-of-line py-beginning-of-list-pps py-beginning-of-minor-block py-beginning-of-partial-expression py-beginning-of-section py-beginning-of-statement-bol py-beginning-of-top-level py-forward-declarations py-backward-declarations py-down py-up py-down-block py-down-block-bol py-down-block-or-clause py-down-block-or-clause-bol py-down-class py-down-class-bol py-down-clause py-down-clause-bol py-down-def py-down-def-bol py-down-def-or-class py-down-def-or-class-bol py-down-minor-block py-down-minor-block-bol py-down-section py-down-section-bol py-down-statement py-down-top-level py-backward-statement py-forward-statement py-goto-block-up py-go-to-beginning-of-comment py-end py-end-of-block-or-clause py-end-of-class py-end-of-comment py-end-of-decorator py-end-of-expression py-end-of-line py-end-of-list-position py-end-of-partial-expression py-end-of-section py-end-of-statement-bol py-end-of-string py-end-of-top-level py-beginning-of-statement py-end-of-statement py-beginning-of-block py-end-of-block py-beginning-of-clause py-end-of-clause py-next-statement py-previous-statement py-backward-def py-forward-def py-backward-def-or-class py-forward-def-or-class py-beginning-of-def-or-class py-end-of-def-or-class)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak number of lines marked"
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--py-goto-block-or-clause-up-after))
+
+(defun ems--py-mark-class-bol-after (&rest _)
+  "Speak number of lines marked"
+  (when (ems-interactive-p)
        (dtk-speak
         (format
          "Marked block containing %s lines"
          (count-lines (region-beginning) (region-end))))
-       (emacsvox-icon 'mark-object)))))
+       (emacsvox-icon 'mark-object)))
 
 (cl-loop
  for f in
- '(
-
-   Possible completions are:
-   py-narrow-to-block  py-narrow-to-block-or-clause    py-narrow-to-class
-   py-narrow-to-clause         py-narrow-to-def
-   py-narrow-to-def-or-class
-   py-narrow-to-statement
-   )
+ '(py-mark-class-bol py-mark-clause py-mark-clause-bol py-mark-comment py-mark-comment-bol py-mark-def py-mark-def-bol py-mark-def-or-class py-mark-def-or-class-bol py-mark-except-block py-mark-except-block-bol py-mark-expression py-mark-expression-bol py-mark-if-block py-mark-if-block-bol py-mark-line py-mark-line-bol py-mark-minor-block py-mark-minor-block-bol py-mark-paragraph py-mark-paragraph-bol py-mark-partial-expression py-mark-partial-expression-bol py-mark-section py-mark-statement py-mark-statement-bol py-mark-top-level py-mark-top-level-bol py-mark-try-block py-mark-try-block-bol)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--py-mark-class-bol-after))
+
+(defun ems--Possible-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (message "Narrowed  %s lines"
-                (count-lines (point-min) (point-max)))))))
+                (count-lines (point-min) (point-max)))))
+
+(cl-loop
+ for f in
+ '(Possible completions are: py-narrow-to-block py-narrow-to-block-or-clause py-narrow-to-class py-narrow-to-clause py-narrow-to-def py-narrow-to-def-or-class py-narrow-to-statement)
+ do
+ (advice-add f :after #'ems--Possible-after))
 
 (defun ems--py-mark-def-or-class-after (&rest _)
   "Speak number of lines marked"
@@ -370,20 +260,18 @@
 
 ;;;  the process buffer
 
-(defun ems--py-process-filter-around (orig-fun &rest args)
+(defun ems--py-process-filter-around (orig-fun proc string &rest args)
   "Make comint in Python speak its output. "
-  (let ((result (apply orig-fun args)))
-    
-    (let ((prior (point)) (dtk-stop-immediately nil))
-      (apply orig-fun args)
-      (when
-          (and emacsvox-comint-autospeak
-               (window-live-p
-                (get-buffer-window (process-buffer (ad-get-arg 0)))))
-        (condition-case nil (emacsvox-speak-region prior (point))
-          (error (emacsvox-icon 'scroll) (dtk-stop 'all))))
-      result)
-    result))
+  (let* ((prior (point))
+         (dtk-stop-immediately nil)
+         (res (apply orig-fun proc string args)))
+    (when
+        (and emacsvox-comint-autospeak
+             (window-live-p
+              (get-buffer-window (process-buffer proc))))
+      (condition-case nil (emacsvox-speak-region prior (point))
+        (error (emacsvox-icon 'scroll) (dtk-stop 'all))))
+    res))
 
 (advice-add 'py-process-filter :around #'ems--py-process-filter-around)
 

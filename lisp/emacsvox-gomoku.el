@@ -231,19 +231,17 @@
 
 ;;;   advice all navigation
 
+(defun ems--gomoku-beginning-of-line-after (&rest _)
+  "speak"
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-gomoku-speak-square)))
+
 (cl-loop
  for f in
- '(
-   gomoku-beginning-of-line gomoku-end-of-line
-   gomoku-move-down gomoku-move-up gomoku-move-left gomoku-move-right 
-   gomoku-move-ne gomoku-move-nw gomoku-move-se gomoku-move-sw)
+ '(gomoku-beginning-of-line gomoku-end-of-line gomoku-move-down gomoku-move-up gomoku-move-left gomoku-move-right gomoku-move-ne gomoku-move-nw gomoku-move-se gomoku-move-sw)
  do
- (eval
-  `(defadvice ,f  (after emacsvox pre act comp)
-     "speak"
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-gomoku-speak-square)))))
+ (advice-add f :after #'ems--gomoku-beginning-of-line-after))
 
 (defun ems--gomoku-emacs-plays-after (&rest _)
   "Tell me where you played" (emacsvox-icon 'mark-object)
@@ -251,18 +249,16 @@
 
 (advice-add 'gomoku-emacs-plays :after #'ems--gomoku-emacs-plays-after)
 
-(defun ems--gomoku-terminate-game-around (orig-fun &rest args)
+(defun ems--gomoku-terminate-game-around (orig-fun result &rest args)
   "speak"
-  (let ((result (apply orig-fun args)))
-    (cl-declare
-     (special emacsvox-last-message gomoku-number-of-moves))
-    (let ((result (ad-get-arg 0)))
-      (apply orig-fun args)
-      (dtk-speak
-       (format "%s in %s moves  %s " result gomoku-number-of-moves
-               emacsvox-last-message))
-      (sit-for 2))
-    result))
+  (cl-declare
+   (special emacsvox-last-message gomoku-number-of-moves))
+  (let ((res (apply orig-fun result args)))
+    (dtk-speak
+     (format "%s in %s moves  %s " result gomoku-number-of-moves
+             emacsvox-last-message))
+    (sit-for 2)
+    res))
 
 (advice-add 'gomoku-terminate-game :around
             #'ems--gomoku-terminate-game-around)

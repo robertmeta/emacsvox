@@ -52,29 +52,17 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in 
- '(
-   abc-align-bars
-   abc-backward-song
-   abc-crescendo-region
-   abc-current-song-number
-   abc-diminuendo-region
-   abc-extract-chords
-   abc-forward-song
-   abc-insert-chord
-   abc-insert-instrument
-   abc-midi-chords
-   abc-renumber-songs
-   abc-repeat-region
-   abc-slur-region)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--abc-align-bars-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'button)))))
+       (emacsvox-icon 'button)))
+
+(cl-loop
+ for f in
+ '(abc-align-bars abc-backward-song abc-crescendo-region abc-current-song-number abc-diminuendo-region abc-extract-chords abc-forward-song abc-insert-chord abc-insert-instrument abc-midi-chords abc-renumber-songs abc-repeat-region abc-slur-region)
+ do
+ (advice-add f :after #'ems--abc-align-bars-after))
 
 (provide 'emacsvox-abc-mode)
 ;;;  end of file

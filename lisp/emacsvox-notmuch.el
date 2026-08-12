@@ -236,16 +236,17 @@
   notmuch-unthreaded-from-show-current-query
   notmuch-unthreaded-from-tree-current-query
   )
+(defun ems--notmuch-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-mode-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(notmuch notmuch-hello notmuch-hello-update)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--notmuch-after))
 
 (defun ems--notmuch-bury-or-kill-this-buffer-after (&rest _)
   "speak."

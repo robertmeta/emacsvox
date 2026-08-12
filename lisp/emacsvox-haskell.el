@@ -160,41 +160,29 @@
   haskell-yesod-parse-routes-mode
   )
 
-(cl-loop
- for f in
- '(
-   haskell-add-import haskell-align-imports haskell-auto-insert-module-template)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--haskell-add-import-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'task-done)))))
+       (emacsvox-icon 'task-done)))
 
 (cl-loop
  for f in
- '(
-   haskell-cabal-beginning-of-section haskell-cabal-beginning-of-subsection
-   haskell-cabal-end-of-section haskell-cabal-end-of-subsection
-   haskell-cabal-goto-benchmark-section haskell-cabal-goto-common-section
-   haskell-cabal-goto-executable-section haskell-cabal-goto-exposed-modules
-   haskell-cabal-goto-library-section haskell-cabal-goto-test-suite-section
-   haskell-cabal-next-section haskell-cabal-next-subsection
-   haskell-cabal-previous-section haskell-cabal-previous-subsection
-   haskell-cabal-section-end haskell-cabal-indent-line
-   haskell-delete-indentation
-   haskell-forward-sexp haskell-goto-first-error
-   haskell-goto-next-error haskell-goto-prev-error
-   haskell-mode-jump-to-def
-   haskell-mode-jump-to-def-or-tag haskell-mode-jump-to-tag)
+ '(haskell-add-import haskell-align-imports haskell-auto-insert-module-template)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--haskell-add-import-after))
+
+(defun ems--haskell-cabal-beginning-of-section-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(haskell-cabal-beginning-of-section haskell-cabal-beginning-of-subsection haskell-cabal-end-of-section haskell-cabal-end-of-subsection haskell-cabal-goto-benchmark-section haskell-cabal-goto-common-section haskell-cabal-goto-executable-section haskell-cabal-goto-exposed-modules haskell-cabal-goto-library-section haskell-cabal-goto-test-suite-section haskell-cabal-next-section haskell-cabal-next-subsection haskell-cabal-previous-section haskell-cabal-previous-subsection haskell-cabal-section-end haskell-cabal-indent-line haskell-delete-indentation haskell-forward-sexp haskell-goto-first-error haskell-goto-next-error haskell-goto-prev-error haskell-mode-jump-to-def haskell-mode-jump-to-def-or-tag haskell-mode-jump-to-tag)
+ do
+ (advice-add f :after #'ems--haskell-cabal-beginning-of-section-after))
 
 (defun ems--haskell-cabal-mode-after (&rest _)
   "speak."
@@ -208,20 +196,17 @@
 
 ;;; haskell-indentation
 
+(defun ems--haskell-indentation-common-electric-command-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)
+       (emacsvox-icon 'select-object)))
+
 (cl-loop
  for f in
- '(
-   haskell-indentation-common-electric-command
-   haskell-indentation-indent-backwards
-   haskell-indentation-indent-line haskell-indentation-indent-rigidly
-   haskell-indentation-newline-and-indent)
+ '(haskell-indentation-common-electric-command haskell-indentation-indent-backwards haskell-indentation-indent-line haskell-indentation-indent-rigidly haskell-indentation-newline-and-indent)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)
-       (emacsvox-icon 'select-object)))))
+ (advice-add f :after #'ems--haskell-indentation-common-electric-command-after))
 
 ;;; haskell-mode-hook:
 

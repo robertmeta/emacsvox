@@ -52,33 +52,29 @@
 
 ;;;   Advice Interactive Commands:
 
-(cl-loop
- for   f in 
- '(
-   xref-find-definitions xref-pop-marker-stack pop-tag-mark
-   xref-next-line xref-prev-line xref-go-back
-   xref-find-regexp  xref-pop-marker-stack
-   xref-find-apropos xref-goto-xref)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre  act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--xref-find-definitions-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'large-movement)))))
+       (emacsvox-icon 'large-movement)))
 
 (cl-loop
- for f in 
- '(
-   xref-find-definitions-other-frame  xref-find-definitions-other-window
-   xref-show-location-at-point)
+ for f in
+ '(xref-find-definitions xref-pop-marker-stack pop-tag-mark xref-next-line xref-prev-line xref-go-back xref-find-regexp xref-pop-marker-stack xref-find-apropos xref-goto-xref)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre  act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--xref-find-definitions-after))
+
+(defun ems--xref-find-definitions-other-frame-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (message "Displayed cross-reference.")
-       (emacsvox-icon 'select-object)))))
+       (emacsvox-icon 'select-object)))
+
+(cl-loop
+ for f in
+ '(xref-find-definitions-other-frame xref-find-definitions-other-window xref-show-location-at-point)
+ do
+ (advice-add f :after #'ems--xref-find-definitions-other-frame-after))
 
 (defun ems--xref-find-references-after (&rest _)
   "speak."

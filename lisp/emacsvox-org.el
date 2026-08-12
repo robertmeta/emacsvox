@@ -139,16 +139,17 @@
           (end (org-end-of-item)))
       (emacsvox-speak-region start end))))
 
+(defun ems--org-next-item-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'item)
+       (emacsvox-org-speak-item)))
+
 (cl-loop
  for f in
  '(org-next-item org-previous-item)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'item)
-       (emacsvox-org-speak-item)))))
+ (advice-add f :after #'ems--org-next-item-after))
 
 (cl-loop
  for f in
@@ -175,18 +176,17 @@
        (emacsvox-speak-line)
        (emacsvox-icon 'large-movement)))))
 
-(cl-loop
- for f in 
- '(
-   org-backward-paragraph org-forward-paragraph
-   org-agenda-forward-block org-agenda-backward-block)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--org-backward-paragraph-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'paragraph)
-       (emacsvox-speak-paragraph)))))
+       (emacsvox-speak-paragraph)))
+
+(cl-loop
+ for f in
+ '(org-backward-paragraph org-forward-paragraph org-agenda-forward-block org-agenda-backward-block)
+ do
+ (advice-add f :after #'ems--org-backward-paragraph-after))
 
 (defun ems--org-cycle-list-bullet-after (&rest _)
   "Speak."
@@ -332,42 +332,45 @@
 
 ;;;  toggles:
 
+(defun ems--org-toggle-archive-tag-after (&rest _)
+  "Speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'button)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   org-toggle-archive-tag org-toggle-comment)
+ '(org-toggle-archive-tag org-toggle-comment)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'button)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--org-toggle-archive-tag-after))
 
 ;;;  ToDo:
 
 ;;;  timestamps and calendar:
 
+(defun ems--org-timestamp-down-day-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
  '(org-timestamp-down-day org-timestamp-up-day)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--org-timestamp-down-day-after))
 
-(cl-loop for f in
-         '(org-timestamp-down org-timestamp-up)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
+(defun ems--org-timestamp-down-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
                (emacsvox-icon 'select-object)
-               (dtk-speak org-last-changed-timestamp)))))
+               (dtk-speak org-last-changed-timestamp)))
+
+(cl-loop
+ for f in
+ '(org-timestamp-down org-timestamp-up)
+ do
+ (advice-add f :after #'ems--org-timestamp-down-after))
 
 (defun ems--org-eval-in-calendar-after (&rest _)
   "Speak what is returned." 
@@ -380,42 +383,41 @@
 
 ;; AGENDA NAVIGATION
 
+(defun ems--org-agenda-next-date-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   org-agenda-next-date-line org-agenda-previous-date-line
-   org-agenda-next-line org-agenda-previous-line
-   org-agenda-goto-today
-   )
+ '(org-agenda-next-date-line org-agenda-previous-date-line org-agenda-next-line org-agenda-previous-line org-agenda-goto-today)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--org-agenda-next-date-line-after))
+
+(defun ems--org-agenda-quit-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'close-object)
+       (emacsvox-speak-mode-line)))
 
 (cl-loop
  for f in
  '(org-agenda-quit org-agenda-exit)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'close-object)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--org-agenda-quit-after))
+
+(defun ems--org-agenda-goto-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
  '(org-agenda-goto org-agenda-show org-agenda-switch-to)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--org-agenda-goto-after))
 
 (defun ems--org-agenda-after (&rest _)
   "Speak."
@@ -533,18 +535,16 @@
 
 ;;;  fix misc commands:
 
+(defun ems--org-occur-after (&rest _)
+  "speak."
+  (when (ems-interactive-p) (emacsvox-speak-line)
+           (emacsvox-icon 'select-object)))
+
 (cl-loop
  for f in
- '(
-   org-occur
-   org-beginning-of-item org-beginning-of-item-list
-   org-end-of-item org-end-of-item-list)
+ '(org-occur org-beginning-of-item org-beginning-of-item-list org-end-of-item org-end-of-item-list)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p) (emacsvox-speak-line)
-           (emacsvox-icon 'select-object)))))
+ (advice-add f :after #'ems--org-occur-after))
 
 (defun ems--org-beginning-of-line-after (&rest _)
   "speak."
@@ -652,15 +652,15 @@
       " "
       (org-table-get-field)))))
 
+(defun ems--org-table-next-field-after (&rest _)
+  "speak."
+  (funcall emacsvox-org-table-after-movement-function))
+
 (cl-loop
  for f in
- '(org-table-next-field org-table-previous-field
-                        org-table-next-row org-table-previous-row)
+ '(org-table-next-field org-table-previous-field org-table-next-row org-table-previous-row)
  do
- (eval
-  `(defadvice ,f  (after emacsvox pre act comp)
-     "speak."
-     (funcall emacsvox-org-table-after-movement-function))))
+ (advice-add f :after #'ems--org-table-next-field-after))
 
 ;;;  Additional table function:
 
@@ -713,11 +713,9 @@ arg just opens the file"
 
 ;;;  Speech-enable export prompt:
 
-(defun ems--org-export--dispatch-action-before (&rest _)
+(defun ems--org-export--dispatch-action-before (prompt _options entries &optional _experts first-key &rest _)
   "Speak prompt intelligently."
-  (let
-      ((prompt (ad-get-arg 0)) (entries (ad-get-arg 2))
-       (first-key (ad-get-arg 4)) (choices nil))
+  (let ((choices nil))
     (setq choices
           (cond ((null first-key) entries)
                 (t (cl-caddr (assoc first-key entries)))))
@@ -739,26 +737,29 @@ arg just opens the file"
 
 ;;;  Edit Special Advice:
 
+(defun ems--org-edit-src-exit-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'close-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
  '(org-edit-src-exit org-edit-src-abort)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'close-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--org-edit-src-exit-after))
+
+(defun ems--org-edit-src-code-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-mode-line)))
 
 (cl-loop
  for f in
- '(org-edit-src-code org-edit-special org-switchb) do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-mode-line)))))
+ '(org-edit-src-code org-edit-special org-switchb)
+ do
+ (advice-add f :after #'ems--org-edit-src-code-after))
 
 ;;;  Fillers:
 
@@ -939,6 +940,8 @@ Press `y' to play to next amark."
 (declare-function
  emacsvox-eww-play-media-at-point "emacsvox-eww" (&optional playlist-p))
 
+(declare-function empv-play "empv" (url))
+
 (defun emacsvox-org-e-media-follow-url (url)
   "Handle e-media URL, either mtv or mplayer based on URL."
   (cond
@@ -952,9 +955,9 @@ Press `y' to play to next amark."
      (emacsvox-icon 'save-object)
      (emacsvox-speak-message-again)))
 
-(defun ems--org-export-to-file-after (&rest _)
+(defun ems--org-export-to-file-after (_backend file &rest _)
   "speak." (emacsvox-icon 'save-object)
-  (dtk-notify (format "Wrote %s" (ad-get-arg 1))))
+  (dtk-notify (format "Wrote %s" file)))
 
 (advice-add 'org-export-to-file :after #'ems--org-export-to-file-after)
 

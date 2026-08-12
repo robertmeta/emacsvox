@@ -50,18 +50,17 @@
 
 ;;;  Interactive Commands:
 
+(defun ems--find-file-in-project-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-mode-line)))
+
 (cl-loop
  for f in
- '(find-file-in-project ffip
-                        find-file-in-project-at-point
-                        find-file-in-project-by-selected)
+ '(find-file-in-project ffip find-file-in-project-at-point find-file-in-project-by-selected)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--find-file-in-project-after))
 
 (provide 'emacsvox-ffip)
 ;;;  end of file

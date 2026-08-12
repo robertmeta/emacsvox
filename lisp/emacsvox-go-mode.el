@@ -51,28 +51,28 @@
 
 ;;;  Advice interactive commands:
 
+(defun ems--go-goto-imports-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(go-goto-imports go-import-add
-                   godef-jump godef-jump-other-window
-                   go-mode-indent-line go-mode-insert-and-indent)
+ '(go-goto-imports go-import-add godef-jump godef-jump-other-window go-mode-indent-line go-mode-insert-and-indent)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--go-goto-imports-after))
+
+(defun ems--godoc-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)))
 
 (cl-loop
  for f in
  '(godoc gofmt)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)))))
+ (advice-add f :after #'ems--godoc-after))
 
 (provide 'emacsvox-go-mode)
 ;;;  end of file

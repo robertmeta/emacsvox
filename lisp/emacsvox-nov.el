@@ -58,33 +58,29 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in 
- '(
-   nov-browse-url
-   nov-display-metadata
-   nov-goto-toc
-   nov-next-document
-   nov-previous-document
-   )
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--nov-browse-url-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-buffer)))))
+       (emacsvox-speak-buffer)))
 
 (cl-loop
  for f in
- '(nov-scroll-up  nov-scroll-down)
+ '(nov-browse-url nov-display-metadata nov-goto-toc nov-next-document nov-previous-document)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak the next screenful."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--nov-browse-url-after))
+
+(defun ems--nov-scroll-up-after (&rest _)
+  "Speak the next screenful."
+  (when (ems-interactive-p)
        (emacsvox-icon 'scroll)
-       (dtk-speak (emacsvox-get-window-contents))))))
+       (dtk-speak (emacsvox-get-window-contents))))
+
+(cl-loop
+ for f in
+ '(nov-scroll-up nov-scroll-down)
+ do
+ (advice-add f :after #'ems--nov-scroll-up-after))
 
 ;;; Mode Hook:
 

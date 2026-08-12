@@ -70,40 +70,40 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in
- '(rg rg-dwim rg-project
-      rg-rerun-change-dir rg-rerun-change-regexp rg-rerun-change-files
-      rg-rerun-toggle-ignore rg-rerun-toggle-case)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)))))
+(defun ems--rg-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)))
 
 (cl-loop
  for f in
- '(rg-next-file
-   rg-prev-file)
+ '(rg rg-dwim rg-project rg-rerun-change-dir rg-rerun-change-regexp rg-rerun-change-files rg-rerun-toggle-ignore rg-rerun-toggle-case)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--rg-after))
+
+(defun ems--rg-next-file-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(rg-next-file rg-prev-file)
+ do
+ (advice-add f :after #'ems--rg-next-file-after))
+
+(defun ems--rg-save-search-as-name-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-mode-line)))
 
 (cl-loop
  for f in
  '(rg-save-search-as-name rg-save-search)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--rg-save-search-as-name-after))
 
 (provide 'emacsvox-rg)
 ;;;  end of file

@@ -53,30 +53,17 @@
 ;;;  Advice interactive functions:
 
 ;; Jumpers: Move to tags by various means
-(cl-loop for f in
-         '(
-           gtags-find-with-grep
-           gtags-find-with-idutils
-           gtags-make-complete-list
-           gtags-select-tag
-           gtags-select-mode
-           gtags-select-tag-by-event
-           gtags-find-symbol
-           gtags-find-file
-           gtags-find-pattern
-           gtags-find-tag
-           gtags-display-browser
-           gtags-find-tag-by-event
-           gtags-find-rtag
-           gtags-find-tag-from-here
-           )
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
+(defun ems--gtags-find-with-grep-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
                (emacsvox-icon 'large-movement)
-               (emacsvox-speak-line)))))
+               (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(gtags-find-with-grep gtags-find-with-idutils gtags-make-complete-list gtags-select-tag gtags-select-mode gtags-select-tag-by-event gtags-find-symbol gtags-find-file gtags-find-pattern gtags-find-tag gtags-display-browser gtags-find-tag-by-event gtags-find-rtag gtags-find-tag-from-here)
+ do
+ (advice-add f :after #'ems--gtags-find-with-grep-after))
 
 (defun ems--gtags-pop-stack-after (&rest _)
   "speak."

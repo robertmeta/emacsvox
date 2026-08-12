@@ -173,16 +173,17 @@
 (advice-add 'calibredb-toggle-view-at-point :after
             #'ems--calibredb-toggle-view-at-point-after)
 
+(defun ems--calibredb-view-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-predefined-window 1)))
+
 (cl-loop
  for f in
  '(calibredb-view calibredb-show-next-entry calibredb-show-previous-entry)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-predefined-window 1)))))
+ (advice-add f :after #'ems--calibredb-view-after))
 
 (defun ems--calibredb-search-refresh-and-clear-filter-after (&rest _)
   "speak."
@@ -200,16 +201,17 @@
 (advice-add 'calibredb-search-quit :after
             #'ems--calibredb-search-quit-after)
 
+(defun ems--calibredb-previous-entry-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
  '(calibredb-previous-entry calibredb-next-entry)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--calibredb-previous-entry-after))
 
 (defun ems--calibredb-after (&rest _)
   "speak."

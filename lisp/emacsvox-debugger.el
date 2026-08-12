@@ -56,22 +56,26 @@
 
 (advice-add 'debugger-continue :after #'ems--debugger-continue-after)
 
+(defun ems--backtrace-forward-frame-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(backtrace-forward-frame backtrace-backward-frame)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--backtrace-forward-frame-after))
 
-(defun ems--debugger-eval-expression-after (&rest _)
-  "speak." (when (ems-interactive-p) (dtk-speak ad-return-value)))
+(defun ems--debugger-eval-expression-around (orig-fun &rest args)
+  "speak."
+  (let ((res (apply orig-fun args)))
+    (when (ems-interactive-p) (dtk-speak res))
+    res))
 
-(advice-add 'debugger-eval-expression :after
-            #'ems--debugger-eval-expression-after)
+(advice-add 'debugger-eval-expression :around
+            #'ems--debugger-eval-expression-around)
 
 (defun ems--debugger-list-functions-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-speak-help)))

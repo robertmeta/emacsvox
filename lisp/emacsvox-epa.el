@@ -64,29 +64,17 @@
 
 ;;;  Advice Interactive Commands:
 
+(defun ems--epa-progress-callback-function-around (orig-fun &rest args)
+  "speak. "
+  (ems-with-messages-silenced
+      ad-do-it
+      (when (ems-interactive-p) (emacsvox-icon 'task-done))))
+
 (cl-loop
  for f in
- '(
-   epa-progress-callback-function
-   epa-mail-verify epa-mail-import-keys
-   epa-file-select-keys epa-insert-keys
-   epa-verify-region epa-verify-file epa-verify-cleartext-in-region
-   epa-sign-region epa-sign-file epa-mail-sign
-   epa-mail-encrypt epa-mail-decrypt
-   epa-import-keys-region epa-import-keys
-   epa-import-armor-in-region epa-export-keys
-   epa-decrypt-region epa-decrypt-file epa-decrypt-armor-in-region
-   epa-encrypt-file epa-encrypt-region
-   epa-dired-do-verify epa-dired-do-sign
-   epa-dired-do-encrypt epa-dired-do-decrypt
-   )
+ '(epa-progress-callback-function epa-mail-verify epa-mail-import-keys epa-file-select-keys epa-insert-keys epa-verify-region epa-verify-file epa-verify-cleartext-in-region epa-sign-region epa-sign-file epa-mail-sign epa-mail-encrypt epa-mail-decrypt epa-import-keys-region epa-import-keys epa-import-armor-in-region epa-export-keys epa-decrypt-region epa-decrypt-file epa-decrypt-armor-in-region epa-encrypt-file epa-encrypt-region epa-dired-do-verify epa-dired-do-sign epa-dired-do-encrypt epa-dired-do-decrypt)
  do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "speak. "
-     (ems-with-messages-silenced
-      ad-do-it
-      (when (ems-interactive-p) (emacsvox-icon 'task-done))))))
+ (advice-add f :around #'ems--epa-progress-callback-function-around))
 
 (add-hook
  'epa-key-list-mode-hook
@@ -107,29 +95,29 @@
 
 (advice-add 'epa-exit-buffer :after #'ems--epa-exit-buffer-after)
 
+(defun ems--epa-mail-mode-after (&rest _)
+  "speak. "
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)
+       (emacsvox-icon 'button)))
+
 (cl-loop
  for f in
- '(
-   epa-mail-mode epa-global-mail-mode
-   epa-file-disable epa-file-enable)
+ '(epa-mail-mode epa-global-mail-mode epa-file-disable epa-file-enable)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak. "
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)
-       (emacsvox-icon 'button)))))
+ (advice-add f :after #'ems--epa-mail-mode-after))
+
+(defun ems--epa-list-keys-after (&rest _)
+  "speak. "
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-mode-line)))
 
 (cl-loop
  for f in
  '(epa-list-keys epa-list-secret-keys)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak. "
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--epa-list-keys-after))
 
 (defun ems--epa-mark-key-after (&rest _)
   "Produce auditory feedback."

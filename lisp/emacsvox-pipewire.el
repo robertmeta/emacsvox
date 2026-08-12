@@ -69,19 +69,17 @@
 
 (advice-add 'pipewire :after #'ems--pipewire-after)
 
-(cl-loop
- for f in 
- '(
-   pipewire-decrease-volume pipewire-decrease-volume-single
-   pipewire-set-volume pipewire-set-profile
-   pipewire-increase-volume pipewire-increase-volume-single)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--pipewire-decrease-volume-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'button)))))
+       (emacsvox-icon 'button)))
+
+(cl-loop
+ for f in
+ '(pipewire-decrease-volume pipewire-decrease-volume-single pipewire-set-volume pipewire-set-profile pipewire-increase-volume pipewire-increase-volume-single)
+ do
+ (advice-add f :after #'ems--pipewire-decrease-volume-after))
 
 (provide 'emacsvox-pipewire)
 ;; end of file

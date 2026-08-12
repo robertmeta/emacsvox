@@ -64,21 +64,17 @@
   devdocs-update-all
   )
 
-(cl-loop
- for f in 
- '(devdocs-first-page
-   devdocs-go-back devdocs-go-forward
-   devdocs-goto-page devdocs-goto-target
-   devdocs-last-page devdocs-lookup devdocs-peruse
-   devdocs-next-entry devdocs-next-page
-   devdocs-previous-entry devdocs-previous-page devdocs-search)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--devdocs-first-page-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(devdocs-first-page devdocs-go-back devdocs-go-forward devdocs-goto-page devdocs-goto-target devdocs-last-page devdocs-lookup devdocs-peruse devdocs-next-entry devdocs-next-page devdocs-previous-entry devdocs-previous-page devdocs-search)
+ do
+ (advice-add f :after #'ems--devdocs-first-page-after))
 
 (provide 'emacsvox-devdocs)
 ;;;  end of file

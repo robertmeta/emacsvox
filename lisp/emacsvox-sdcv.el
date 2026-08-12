@@ -56,37 +56,39 @@
 
 ;;;  Interactive Commands:
 
+(defun ems--sdcv--after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)))
+
 (cl-loop
- for f in 
- '(sdcv-
-   search-input sdcv-search-input+ sdcv-search-pointer sdcv-search-pointer+)
+ for f in
+ '(sdcv- search-input sdcv-search-input+ sdcv-search-pointer sdcv-search-pointer+)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)))))
+ (advice-add f :after #'ems--sdcv--after))
+
+(defun ems--sdcv-previous-dictionary-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)
+       (emacsvox-icon 'large-movement)))
 
 (cl-loop
  for f in
  '(sdcv-previous-dictionary sdcv-next-dictionary)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)
-       (emacsvox-icon 'large-movement)))))
+ (advice-add f :after #'ems--sdcv-previous-dictionary-after))
+
+(defun ems--sdcv-next-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)))
 
 (cl-loop
  for f in
  '(sdcv-next-line sdcv-prev-line)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)))))
+ (advice-add f :after #'ems--sdcv-next-line-after))
 
 (defun emacsvox-sdcv-update-dictionary-list ()
   "Update sdcv dictionary lists if necessary by examining

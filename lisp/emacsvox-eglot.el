@@ -63,18 +63,17 @@
 (advice-add 'eglot-help-at-point :after
             #'ems--eglot-help-at-point-after)
 
-(cl-loop
- for f in 
- '(eglot-find-declaration
-   eglot-find-implementation
-   eglot-find-typeDefinition)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--eglot-find-declaration-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'large-movement)))))
+       (emacsvox-icon 'large-movement)))
+
+(cl-loop
+ for f in
+ '(eglot-find-declaration eglot-find-implementation eglot-find-typeDefinition)
+ do
+ (advice-add f :after #'ems--eglot-find-declaration-after))
 
 (provide 'emacsvox-eglot)
 ;;;  end of file

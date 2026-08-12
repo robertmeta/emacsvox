@@ -397,17 +397,18 @@ that has been forwarded multiple times."
 (advice-add 'vm-mail-send-and-exit :after
             #'ems--vm-mail-send-and-exit-after)
 
+(defun ems--vm-mail-after (&rest _)
+  "Speak."
+  (when (ems-interactive-p)
+       (let ((dtk-stop-immediately nil))
+         (message "Composing a message")
+         (emacsvox-speak-line))))
+
 (cl-loop
  for f in
  '(vm-mail vm-mail-from-folder)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak."
-     (when (ems-interactive-p)
-       (let ((dtk-stop-immediately nil))
-         (message "Composing a message")
-         (emacsvox-speak-line))))))
+ (advice-add f :after #'ems--vm-mail-after))
 
 ;;;  quitting
 

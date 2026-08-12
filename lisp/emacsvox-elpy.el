@@ -51,24 +51,17 @@
 
 ;;;  Advice Interactive Commands:
 
+(defun ems--elpy-autopep8-fix-code-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)
+       (emacsvox-speak-mode-line)))
+
 (cl-loop
  for f in
- '(
-   elpy-autopep8-fix-code elpy-config elpy-check
-   elpy-occur-definitions elpy-rgrep-symbol
-   elpy-set-project-root elpy-set-project-variable
-   elpy-set-test-runner
-   elpy-shell-send-current-statement elpy-shell-send-region-or-buffer
-   elpy-shell-switch-to-buffer elpy-shell-switch-to-shell
-   elpy-use-cpython elpy-use-ipython
-   elpy-importmagic-add-import elpy-importmagic-fixup)
+ '(elpy-autopep8-fix-code elpy-config elpy-check elpy-occur-definitions elpy-rgrep-symbol elpy-set-project-root elpy-set-project-variable elpy-set-test-runner elpy-shell-send-current-statement elpy-shell-send-region-or-buffer elpy-shell-switch-to-buffer elpy-shell-switch-to-shell elpy-use-cpython elpy-use-ipython elpy-importmagic-add-import elpy-importmagic-fixup)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--elpy-autopep8-fix-code-after))
 
 (defun ems--elpy-enable-after (&rest _)
   "speak."
@@ -98,36 +91,31 @@
 
 (advice-add 'elpy-find-file :after #'ems--elpy-find-file-after)
 
+(defun ems--elpy-flymake-next-error-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(elpy-flymake-next-error elpy-flymake-previous-error
-                           elpy-goto-definition)
+ '(elpy-flymake-next-error elpy-flymake-previous-error elpy-goto-definition)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--elpy-flymake-next-error-after))
 
                                         ; elpy-flymake-show-error
 
+(defun ems--elpy-nav-backward-block-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   elpy-nav-backward-block elpy-nav-backward-indent
-   elpy-nav-expand-to-indentation elpy-nav-forward-block
-   elpy-nav-forward-indent
-   elpy-nav-indent-shift-left elpy-nav-indent-shift-right
-   elpy-open-and-indent-line-below elpy-open-and-indent-line-above
-   elpy-nav-move-line-or-region-down elpy-nav-move-line-or-region-up)
+ '(elpy-nav-backward-block elpy-nav-backward-indent elpy-nav-expand-to-indentation elpy-nav-forward-block elpy-nav-forward-indent elpy-nav-indent-shift-left elpy-nav-indent-shift-right elpy-open-and-indent-line-below elpy-open-and-indent-line-above elpy-nav-move-line-or-region-down elpy-nav-move-line-or-region-up)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--elpy-nav-backward-block-after))
 
 (provide 'emacsvox-elpy)
 ;;;  end of file

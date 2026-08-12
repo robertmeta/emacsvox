@@ -591,7 +591,8 @@ Safari/537.36"
     (cond
      (emacsvox-eww-masquerade
       (setq result emacsvox-eww-masquerade-as))
-     (t (setq result "User-Agent: URL/Emacs \n")))
+     (t (setq result "User-Agent: URL/Emacs 
+\n")))
     result))
 
 (advice-add 'url-http-user-agent-string :around
@@ -799,18 +800,17 @@ are available are cued by an auditory icon on the header line."
 
 ;;;  Advice Interactive Commands:
 
+(defun ems--eww-up-url-after (&rest _)
+  "speak"
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-header-line)))
+
 (cl-loop
  for f in
- '(eww-up-url eww-top-url
-              eww-next-url eww-previous-url
-              eww-back-url eww-forward-url)
+ '(eww-up-url eww-top-url eww-next-url eww-previous-url eww-back-url eww-forward-url)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak"
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-header-line)))))
+ (advice-add f :after #'ems--eww-up-url-after))
 
 (defvar-local emacsvox-eww-style nil
   "Record if we applied an  xsl style in this buffer.")
@@ -851,15 +851,16 @@ are available are cued by an auditory icon on the header line."
 
 (advice-add 'eww-reload :around #'ems--eww-reload-around)
 
+(defun ems--eww-after (&rest _)
+  "speak"
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)))
+
 (cl-loop
  for f in
  '(eww eww-open-in-new-buffer eww-reload eww-open-file)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak"
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)))))
+ (advice-add f :after #'ems--eww-after))
 
 (defvar emacsvox-eww-rename-buffer t
   "Result buffer is renamed to document title.")
@@ -934,29 +935,22 @@ are available are cued by an auditory icon on the header line."
 
 (advice-add 'eww-quit :after #'ems--eww-quit-after)
 
-(cl-loop
- for f in
- '(eww-change-select
-   eww-toggle-checkbox
-   eww-submit)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'button)))))
-(defvar-local emacsvox-eww-a-speaker nil
-  "Specialized link speaker.")
+(defun ems--eww-change-select-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'button)))
 
 (cl-loop
  for f in
- '(shr-next-link shr-previous-link)
+ '(eww-change-select eww-toggle-checkbox eww-submit)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--eww-change-select-after))
+(defvar-local emacsvox-eww-a-speaker nil
+  "Specialized link speaker.")
+
+(defun ems--shr-next-link-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (let ((host
               (condition-case nil
                   (url-host
@@ -976,7 +970,13 @@ are available are cued by an auditory icon on the header line."
          (emacsvox-speak-region
           (point)
           (next-single-property-change
-           (point) 'help-echo nil (point-max)))))))))
+           (point) 'help-echo nil (point-max)))))))
+
+(cl-loop
+ for f in
+ '(shr-next-link shr-previous-link)
+ do
+ (advice-add f :after #'ems--shr-next-link-after))
 
 ;; Handle emacsvox-we-url-executor
 
@@ -2051,16 +2051,17 @@ The %s is automatically spoken if there is no user activity."
 
 (advice-add 'eww-buffer-select :after #'ems--eww-buffer-select-after)
 
+(defun ems--eww-buffer-show-next-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-eww-speak-buffer-line)))
+
 (cl-loop
  for f in
  '(eww-buffer-show-next eww-buffer-show-previous)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-eww-speak-buffer-line)))))
+ (advice-add f :after #'ems--eww-buffer-show-next-after))
 
 ;;;   EWW Filtering shortcuts:
 
@@ -2083,12 +2084,12 @@ The %s is automatically spoken if there is no user activity."
 ;; instead.
 
 (defun ems--eww-browse-with-external-browser-around
-    (orig-fun &rest args)
+    (orig-fun &optional url &rest args)
   "Use our m-player integration."
   (let*
-      ((url (or (ad-get-arg 0) "")) (case-fold-search t)
+      ((url (or url "")) (case-fold-search t)
        (media-p (string-match emacsvox-media-extensions url)))
-    (cond (media-p (emacsvox-m-player url)) (t (apply orig-fun args)))))
+    (cond (media-p (emacsvox-m-player url)) (t (apply orig-fun url args)))))
 
 (advice-add 'eww-browse-with-external-browser :around
             #'ems--eww-browse-with-external-browser-around)

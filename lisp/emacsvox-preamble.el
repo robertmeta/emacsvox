@@ -251,9 +251,7 @@ FN-NAME to our stored value of ems--interactive-fn-name."
   "Dynamically defined at runtime to provide Emacsvox's
   interactive check.  This definition never be called, so produce debug
   info if the unexpected happens."
-  
-  (error
-   (format "From %s: Unexpected call!" ems--interactive-fn-name)))
+  (or ems--interactive-fn-name (called-interactively-p 'any)))
 
 ;;; defun: ems--fastload:
 

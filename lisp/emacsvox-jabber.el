@@ -96,20 +96,15 @@ nil
 
 ;;;  silence keepalive
 
+(defun ems--image-type-around (orig-fun &rest args)
+  "Silence  messages."
+  (ems-with-messages-silenced (apply orig-fun args)))
+
 (cl-loop
  for f in
- '(
-   image-type jabber-chat-with jabber-chat-with-jid-at-point
-   jabber-keepalive-do jabber-fsm-handle-sentinel
-   jabber-xml-resolve-namespace-prefixes
-   jabber-process-roster jabber-keepalive-got-response)
+ '(image-type jabber-chat-with jabber-chat-with-jid-at-point jabber-keepalive-do jabber-fsm-handle-sentinel jabber-xml-resolve-namespace-prefixes jabber-process-roster jabber-keepalive-got-response)
  do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Silence  messages."
-     (ems-with-messages-silenced
-      ad-do-it
-      ad-return-value))))
+ (advice-add f :around #'ems--image-type-around))
 
 ;;;  jabber activity:
 

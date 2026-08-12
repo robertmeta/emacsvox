@@ -81,49 +81,46 @@
 (advice-add 'tab-bar-switch-to-tab :after
             #'ems--tab-bar-switch-to-tab-after)
 
-(cl-loop
- for f in 
- '(
-   tab-next tab-previous tab-select
-   tab-bar-select-tab tab-bar-select-tab-by-name
-   tab-bar-switch-to-next-tab tab-bar-switch-to-prev-tab
-   tab-bar-switch-to-recent-tab)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-tab-bar-speak-tab-name)))))
-
-(cl-loop
- for f in 
- '(
-   tab-bar-close-other-tabs tab-bar-close-tab
-   tab-close tab-close-other)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'close-object)
-       (emacsvox-tab-bar-speak-tab-name)))))
-
-(cl-loop
- for f in 
- '(tab-new tab-bar-new-tab)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-tab-bar-speak-tab-name)))))
-
-(defun ems--tab-bar-close-tab-by-name-after (&rest _)
+(defun ems--tab-next-after (&rest _)
   "speak."
   (when (ems-interactive-p)
-    (dtk-speak (message "Closed tab %s" (ad-get-arg 0)))
+       (emacsvox-icon 'select-object)
+       (emacsvox-tab-bar-speak-tab-name)))
+
+(cl-loop
+ for f in
+ '(tab-next tab-previous tab-select tab-bar-select-tab tab-bar-select-tab-by-name tab-bar-switch-to-next-tab tab-bar-switch-to-prev-tab tab-bar-switch-to-recent-tab)
+ do
+ (advice-add f :after #'ems--tab-next-after))
+
+(defun ems--tab-bar-close-other-tabs-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'close-object)
+       (emacsvox-tab-bar-speak-tab-name)))
+
+(cl-loop
+ for f in
+ '(tab-bar-close-other-tabs tab-bar-close-tab tab-close tab-close-other)
+ do
+ (advice-add f :after #'ems--tab-bar-close-other-tabs-after))
+
+(defun ems--tab-new-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-tab-bar-speak-tab-name)))
+
+(cl-loop
+ for f in
+ '(tab-new tab-bar-new-tab)
+ do
+ (advice-add f :after #'ems--tab-new-after))
+
+(defun ems--tab-bar-close-tab-by-name-after (name &rest _)
+  "speak."
+  (when (ems-interactive-p)
+    (dtk-speak (message "Closed tab %s" name))
     (emacsvox-icon 'close-object)))
 
 (advice-add 'tab-bar-close-tab-by-name :after
@@ -131,15 +128,16 @@
 
 ;;; tab-list commands:
 
+(defun ems--tab-list-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)))
+
 (cl-loop
- for f in 
+ for f in
  '(tab-list tab-bar-list)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)))))
+ (advice-add f :after #'ems--tab-list-after))
 
 (defun ems--tab-bar-list-execute-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-icon 'task-done)))
@@ -147,16 +145,17 @@
 (advice-add 'tab-bar-list-execute :after
             #'ems--tab-bar-list-execute-after)
 
+(defun ems--tab-bar-list-prev-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(tab-bar-list-prev-line tab-bar-list-next-line)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--tab-bar-list-prev-line-after))
 
 (defun ems--tab-bar-list-unmark-after (&rest _)
   "speak."
@@ -166,16 +165,17 @@
 (advice-add 'tab-bar-list-unmark :after
             #'ems--tab-bar-list-unmark-after)
 
-(cl-loop
- for f in 
- '(tab-bar-list-delete  tab-bar-list-delete-backwards)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--tab-bar-list-delete-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'delete-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(tab-bar-list-delete tab-bar-list-delete-backwards)
+ do
+ (advice-add f :after #'ems--tab-bar-list-delete-after))
 
 (defun ems--tab-bar-list-select-after (&rest _)
   "speak."

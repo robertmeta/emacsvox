@@ -100,16 +100,17 @@ Assumes that point is at the front of a field value."
     (dtk-speak (concat name " " value))))
 
 ;;;  Advise interactive  commands
+(defun ems--forms-search-forward-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'search-hit)
+       (emacsvox-speak-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(forms-search-forward forms-search-backward)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'search-hit)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--forms-search-forward-after))
 
 (defun ems--forms-next-record-after (&rest _)
   "speak."

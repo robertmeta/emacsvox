@@ -48,53 +48,22 @@
 ;;;  Interactive Commands:
 ;; Speech-enable output handlers:
 
-(defun ems--ellama-chat-done-after (&rest _)
-  "speak." (emacsvox-icon 'item) (dtk-speak (ad-get-arg 0)))
+(defun ems--ellama-chat-done-after (text &rest _)
+  "speak." (emacsvox-icon 'item) (dtk-speak text))
 
 (advice-add 'ellama-chat-done :after #'ems--ellama-chat-done-after)
 
-(cl-loop
- for f in 
- '(
-   ellama-add-code
-   ellama-ask
-   ellama-ask-about
-   ellama-ask-interactive
-   ellama-ask-line
-   ellama-ask-selection
-   ellama-change
-   ellama-change-code
-   ellama-chat
-   ellama-code-add
-   ellama-code-complete
-   ellama-code-edit
-   ellama-code-improve
-   ellama-code-review
-   ellama-complete
-   ellama-complete-code
-   ellama-define-word
-   ellama-enhance-code
-   ellama-enhance-grammar-spelling
-   ellama-enhance-wording
-   ellama-improve-conciseness
-   ellama-improve-grammar
-   ellama-improve-wording
-   ellama-make-concise
-   ellama-make-format
-   ellama-make-list
-   ellama-make-table
-   ellama-render
-   ellama-summarize
-   ellama-summarize-webpage
-   ellama-translate
-   )
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--ellama-add-code-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'select-object)
-       (dtk-speak "Calling LLM")))))
+       (dtk-speak "Calling LLM")))
+
+(cl-loop
+ for f in
+ '(ellama-add-code ellama-ask ellama-ask-about ellama-ask-interactive ellama-ask-line ellama-ask-selection ellama-change ellama-change-code ellama-chat ellama-code-add ellama-code-complete ellama-code-edit ellama-code-improve ellama-code-review ellama-complete ellama-complete-code ellama-define-word ellama-enhance-code ellama-enhance-grammar-spelling ellama-enhance-wording ellama-improve-conciseness ellama-improve-grammar ellama-improve-wording ellama-make-concise ellama-make-format ellama-make-list ellama-make-table ellama-render ellama-summarize ellama-summarize-webpage ellama-translate)
+ do
+ (advice-add f :after #'ems--ellama-add-code-after))
 
 (provide 'emacsvox-ellama)
 ;;;  end of file

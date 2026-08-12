@@ -137,18 +137,17 @@
 (advice-add 'package-menu-execute :around
             #'ems--package-menu-execute-around)
 
+(defun ems--package-menu-mark-delete-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)
+       (emacsvox-icon 'mark-object)))
+
 (cl-loop
  for f in
- '(
-   package-menu-mark-delete package-menu-mark-install package-show-package-list
-   package-menu-mark-unmark package-menu-backup-unmark)
+ '(package-menu-mark-delete package-menu-mark-install package-show-package-list package-menu-mark-unmark package-menu-backup-unmark)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act com)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)
-       (emacsvox-icon 'mark-object)))))
+ (advice-add f :after #'ems--package-menu-mark-delete-after))
 
 ;;;  Advice Upgrade:
 

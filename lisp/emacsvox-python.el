@@ -58,18 +58,16 @@
 
 (advice-add 'python-check :after #'ems--python-check-after)
 
+(defun ems--python-shell-send-region-after (&rest _)
+  "speak"
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)))
+
 (cl-loop
  for f in
- '(
-   python-shell-send-region python-shell-send-defun
-   python-shell-send-file   python-shell-send-buffer
-   python-shell-send-string python-shell-send-string-no-output)
+ '(python-shell-send-region python-shell-send-defun python-shell-send-file python-shell-send-buffer python-shell-send-string python-shell-send-string-no-output)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak"
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)))))
+ (advice-add f :after #'ems--python-shell-send-region-after))
 
 ;;;   whitespace management and indentation
 
@@ -147,26 +145,17 @@
 
 (advice-add 'python-mark-defun :after #'ems--python-mark-defun-after)
 
+(defun ems--python-nav-up-list-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)
+       (emacsvox-icon 'paragraph)))
+
 (cl-loop
  for f in
- '(
-   python-nav-up-list python-nav-if-name-main python-nav-forward-statement
-   python-nav-forward-sexp-safe python-nav-forward-sexp
-   python-nav-forward-defun
-   python-nav-forward-block python-nav-end-of-statement python-nav-end-of-defun
-   python-nav-end-of-block python-nav-beginning-of-statement
-   python-nav-beginning-of-block
-   python-nav-backward-up-list python-nav-backward-statement
-   python-nav-backward-sexp-safe
-   python-nav-backward-sexp python-nav-backward-defun python-nav-backward-block
-   )
+ '(python-nav-up-list python-nav-if-name-main python-nav-forward-statement python-nav-forward-sexp-safe python-nav-forward-sexp python-nav-forward-defun python-nav-forward-block python-nav-end-of-statement python-nav-end-of-defun python-nav-end-of-block python-nav-beginning-of-statement python-nav-beginning-of-block python-nav-backward-up-list python-nav-backward-statement python-nav-backward-sexp-safe python-nav-backward-sexp python-nav-backward-defun python-nav-backward-block)
  do
- (eval
-  `(defadvice  ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)
-       (emacsvox-icon 'paragraph)))))
+ (advice-add f :after #'ems--python-nav-up-list-after))
 
 (provide 'emacsvox-python)
 ;;;  end of file

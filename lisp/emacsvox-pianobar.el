@@ -151,26 +151,16 @@
 
 ;; Advice all actions to play a pre-auditory icon
 
+(defun ems--pianobar-pause-song-before (&rest _)
+  "Play auditory icon."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'item)))
+
 (cl-loop
- for  f in
- '(pianobar-pause-song pianobar-love-current-song
-                       pianobar-ban-current-song pianobar-bookmark-song
-                       pianobar-create-station pianobar-delete-current-station
-                       pianobar-explain-song
-                       pianobar-add-shared-station pianobar-song-history
-                       pianobar-currently-playing pianobar-add-shared-station
-                       pianobar-move-song-different-station pianobar-next-song
-                       pianobar-rename-current-station
-                       pianobar-change-station
-                       pianobar-tired-of-song
-                       pianobar-upcoming-songs
-                       pianobar-select-quickmix-stations pianobar-next-song)
+ for f in
+ '(pianobar-pause-song pianobar-love-current-song pianobar-ban-current-song pianobar-bookmark-song pianobar-create-station pianobar-delete-current-station pianobar-explain-song pianobar-add-shared-station pianobar-song-history pianobar-currently-playing pianobar-add-shared-station pianobar-move-song-different-station pianobar-next-song pianobar-rename-current-station pianobar-change-station pianobar-tired-of-song pianobar-upcoming-songs pianobar-select-quickmix-stations pianobar-next-song)
  do
- (eval
-  `(defadvice ,f (before emacsvox pre act comp)
-     "Play auditory icon."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'item)))))
+ (advice-add f :before #'ems--pianobar-pause-song-before))
 
 (defun ems--pianobar-window-toggle-after (&rest _)
   "speak."

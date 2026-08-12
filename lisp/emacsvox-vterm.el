@@ -109,16 +109,17 @@
 
 (advice-add 'vterm :after #'ems--vterm-after)
 
+(defun ems--vterm-end-of-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
  '(vterm-end-of-line vterm-beginning-of-line)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--vterm-end-of-line-after))
 
 (defun ems--vterm-reset-cursor-point-after (&rest _)
   "speak."
@@ -133,16 +134,17 @@
 
 (advice-add 'vterm-send-return :after #'ems--vterm-send-return-after)
 
+(defun ems--vterm-previous-prompt-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
  '(vterm-previous-prompt vterm-next-prompt)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--vterm-previous-prompt-after))
 
 ;;; Speech-enable term emulation:
 

@@ -103,15 +103,16 @@
 
 ;;;  Managing Packages:
 
+(defun ems--paradox-next-entry-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-paradox-summarize-line)))
+
 (cl-loop
  for f in
  '(paradox-next-entry paradox-previous-entry)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-paradox-summarize-line)))))
+ (advice-add f :after #'ems--paradox-next-entry-after))
 
 ;;;  Advice:
 
@@ -123,29 +124,30 @@
 (advice-add 'paradox-quit-and-close :after
             #'ems--paradox-quit-and-close-after)
 
+(defun ems--paradox-sort-by-package-after (&rest _)
+  "Speak after done."
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)
+       (emacsvox-icon 'task-done)))
+
 (cl-loop
  for f in
- '(
-   paradox-sort-by-package paradox-sort-by-status
-   paradox-sort-by-version paradox-sort-by-★) do
- (eval
-  `(defadvice ,f  (after emacsvox pre act comp)
-     "Speak after done."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)
-       (emacsvox-icon 'task-done)))))
+ '(paradox-sort-by-package paradox-sort-by-status paradox-sort-by-version paradox-sort-by-★)
+ do
+ (advice-add f :after #'ems--paradox-sort-by-package-after))
 
 ;;;  Commit Navigation:
+(defun ems--paradox-next-commit-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-tabulated-list-speak-cell)))
+
 (cl-loop
- for f in 
+ for f in
  '(paradox-next-commit paradox-previous-commit)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-tabulated-list-speak-cell)))))
+ (advice-add f :after #'ems--paradox-next-commit-after))
 
 (defun ems--paradox-menu-view-commit-list-after (&rest _)
   "speak."

@@ -183,58 +183,59 @@ Indicate  no movement if we did not move."
 
 (advice-add 'lispy-tick :after #'ems--lispy-tick-after)
 
+(defun ems--lispy-at-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-this-char (preceding-char))))
+
 (cl-loop
  for f in
  '(lispy-at lispy-colon lispy-hash lispy-hat)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-this-char (preceding-char))))))
+ (advice-add f :after #'ems--lispy-at-after))
+
+(defun ems--lispy-parens-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'item)
+       (save-excursion
+         (forward-char 1)
+         (emacsvox-speak-sexp))))
 
 (cl-loop
  for f in
  '(lispy-parens lispy-braces lispy-brackets)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'item)
-       (save-excursion
-         (forward-char 1)
-         (emacsvox-speak-sexp))))))
+ (advice-add f :after #'ems--lispy-parens-after))
 
 ;;;  Slurp and barf:
 
-(cl-loop
- for f in
- '(
-   lispy-barf lispy-slurp lispy-join lispy-split
-   lispy-quotes lispy-alt-multiline
-   lispy-out-forward-newline lispy-parens-down lispy-meta-return)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak line with show-point turned on."
-     (when (ems-interactive-p)
+(defun ems--lispy-barf-after (&rest _)
+  "speak line with show-point turned on."
+  (when (ems-interactive-p)
        (let ((emacsvox-show-point t))
          (emacsvox-icon 'select-object)
-         (emacsvox-speak-line))))))
+         (emacsvox-speak-line))))
+
+(cl-loop
+ for f in
+ '(lispy-barf lispy-slurp lispy-join lispy-split lispy-quotes lispy-alt-multiline lispy-out-forward-newline lispy-parens-down lispy-meta-return)
+ do
+ (advice-add f :after #'ems--lispy-barf-after))
 
 ;;; Advice Marking:
+
+(defun ems--lispy-mark-list-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'mark-object)
+       (emacsvox-speak-region (region-beginning) (region-end))))
 
 (cl-loop
  for f in
  '(lispy-mark-list lispy-mark)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'mark-object)
-       (emacsvox-speak-region (region-beginning) (region-end))))))
+ (advice-add f :after #'ems--lispy-mark-list-after))
 
 (defun ems--lispy-mark-symbol-after (&rest _)
   "speak."
@@ -253,16 +254,17 @@ Indicate  no movement if we did not move."
 
 (advice-add 'lispy-fill :after #'ems--lispy-fill-after)
 
+(defun ems--lispy-newline-and-indent-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (let ((emacsvox-show-point t))
+         (emacsvox-speak-line))))
+
 (cl-loop
  for f in
  '(lispy-newline-and-indent lispy-newline-and-indent-plain)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (let ((emacsvox-show-point t))
-         (emacsvox-speak-line))))))
+ (advice-add f :after #'ems--lispy-newline-and-indent-after))
 
 (defun ems--lispy-tab-after (&rest _)
   "speak."
@@ -284,17 +286,17 @@ Indicate  no movement if we did not move."
 
 (advice-add 'lispy-new-copy :after #'ems--lispy-new-copy-after)
 
+(defun ems--lispy-kill-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'delete-object)
+       (dtk-speak (current-kill 0 nil))))
+
 (cl-loop
  for f in
- '(lispy-kill lispy-kill-word lispy-backward-kill-word
-              lispy-kill-sentence lispy-kill-at-point)
+ '(lispy-kill lispy-kill-word lispy-backward-kill-word lispy-kill-sentence lispy-kill-at-point)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'delete-object)
-       (dtk-speak (current-kill 0 nil))))))
+ (advice-add f :after #'ems--lispy-kill-after))
 
 (defun ems--lispy-yank-after (&rest _)
   "speak."
@@ -306,20 +308,19 @@ Indicate  no movement if we did not move."
 
 (defun ems--lispy-delete-backward-around (orig-fun &rest args)
   "speak."
-  (cond
-   ((ems-interactive-p) (emacsvox-icon 'delete-object)
-    (emacsvox-speak-this-char (preceding-char)) ad-do-it)
-   (t ad-do-it)))
+  (when (ems-interactive-p)
+    (emacsvox-icon 'delete-object)
+    (emacsvox-speak-this-char (preceding-char)))
+  (apply orig-fun args))
 
 (advice-add 'lispy-delete-backward :around
             #'ems--lispy-delete-backward-around)
 
 (defun ems--lispy-delete-around (orig-fun &rest args)
   "speak."
-  (cond
-   ((ems-interactive-p) (dtk-tone-deletion) (emacsvox-speak-char t)
-    ad-do-it)
-   (t ad-do-it)))
+  (when (ems-interactive-p)
+    (dtk-tone-deletion) (emacsvox-speak-char t))
+  (apply orig-fun args))
 
 (advice-add 'lispy-delete :around #'ems--lispy-delete-around)
 
@@ -337,8 +338,8 @@ Indicate  no movement if we did not move."
 (advice-add 'lispy-describe-inline :after
             #'ems--lispy-describe-inline-after)
 
-(defun ems--lispy--show-before (&rest _)
-  "speak." (emacsvox-icon 'help) (dtk-speak (ad-get-arg 0)))
+(defun ems--lispy--show-before (str &rest _)
+  "speak." (emacsvox-icon 'help) (dtk-speak str))
 
 (advice-add 'lispy--show :before #'ems--lispy--show-before)
 
@@ -361,16 +362,17 @@ Indicate  no movement if we did not move."
 
 (advice-add 'lispy-widen :after #'ems--lispy-widen-after)
 
+(defun ems--lispy-outline-next-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (let ((emacsvox-show-point t))
+         (emacsvox-speak-line))))
+
 (cl-loop
  for f in
  '(lispy-outline-next lispy-outline-prev lispy-shifttab)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (let ((emacsvox-show-point t))
-         (emacsvox-speak-line))))))
+ (advice-add f :after #'ems--lispy-outline-next-after))
 
 (provide 'emacsvox-lispy)
 ;;;  end of file

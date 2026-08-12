@@ -51,16 +51,17 @@
 
 ;;;  Advice interactive commands:
 
+(defun ems--elisp-refs-prev-match-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
  '(elisp-refs-prev-match elisp-refs-next-match elisp-refs-visit-match)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--elisp-refs-prev-match-after))
 
 (provide 'emacsvox-elisp-refs)
 ;;;  end of file

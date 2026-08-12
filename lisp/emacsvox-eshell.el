@@ -91,23 +91,20 @@
 
 ;;;  advice em-hist
 
-(cl-loop
- for f in
- '(
-   eshell-next-input eshell-previous-input
-   eshell-next-matching-input eshell-previous-matching-input
-   eshell-next-matching-input-from-input
-   eshell-previous-matching-input-from-input)
- do
- (eval
-  `(defadvice ,f (after  emacsvox pre act comp)
-     "Speak selected command."
-     (when (ems-interactive-p)
+(defun ems--eshell-next-input-after (&rest _)
+  "Speak selected command."
+  (when (ems-interactive-p)
        (emacsvox-icon 'select-object)
        (save-excursion
          (beginning-of-line)
          (eshell-skip-prompt)
-         (emacsvox-speak-line 1))))))
+         (emacsvox-speak-line 1))))
+
+(cl-loop
+ for f in
+ '(eshell-next-input eshell-previous-input eshell-next-matching-input eshell-previous-matching-input eshell-next-matching-input-from-input eshell-previous-matching-input-from-input)
+ do
+ (advice-add f :after #'ems--eshell-next-input-after))
 
 ;;;   advice em-ls
 
@@ -140,33 +137,32 @@ personalities.")
 
 ;;;  Advice em-prompt
 
-(cl-loop for f in
-         '(
-           eshell-next-prompt eshell-previous-prompt
-           eshell-forward-matching-input  eshell-backward-matching-input)
-         do
-         (eval
-          `(defadvice ,f (after  emacsvox pre act comp)
-             "Speak selected command."
-             (when (ems-interactive-p)
+(defun ems--eshell-next-prompt-after (&rest _)
+  "Speak selected command."
+  (when (ems-interactive-p)
                (let ((emacsvox-speak-messages nil))
                  (emacsvox-icon 'select-object)
-                 (emacsvox-speak-line 1))))))
+                 (emacsvox-speak-line 1))))
+
+(cl-loop
+ for f in
+ '(eshell-next-prompt eshell-previous-prompt eshell-forward-matching-input eshell-backward-matching-input)
+ do
+ (advice-add f :after #'ems--eshell-next-prompt-after))
 
 ;;;   advice esh-arg
 
-(cl-loop for f in
-         '(
-           eshell-insert-buffer-name
-           eshell-insert-process
-           eshell-insert-envvar)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "Speak output."
-             (when (ems-interactive-p)
+(defun ems--eshell-insert-buffer-name-after (&rest _)
+  "Speak output."
+  (when (ems-interactive-p)
                (emacsvox-icon 'select-object)
-               (emacsvox-speak-line)))))
+               (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(eshell-insert-buffer-name eshell-insert-process eshell-insert-envvar)
+ do
+ (advice-add f :after #'ems--eshell-insert-buffer-name-after))
 
 (defun ems--eshell-insert-process-after (&rest _)
   "Speak output."
@@ -260,36 +256,38 @@ personalities.")
 
 ;;; Additional Commands To Enable: 
 
+(defun ems--eshell-forward-argument-after (&rest _)
+  "provide auditory feedback."
+  (when
+         (ems-interactive-p)
+       (let ((emacsvox-show-point t))
+         (emacsvox-speak-line)
+         (emacsvox-icon 'large-movement))))
+
 (cl-loop
  for f in
  '(eshell-forward-argument eshell-backward-argument eshell-bol)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "provide auditory feedback."
-     (when
-         (ems-interactive-p)
-       (let ((emacsvox-show-point t))
-         (emacsvox-speak-line)
-         (emacsvox-icon 'large-movement))))))
+ (advice-add f :after #'ems--eshell-forward-argument-after))
 
-(cl-loop
- for f in
- '(eshell-pcomplete eshell-complete-lisp-symbol)
- do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Say what you completed."
-     (ems-with-messages-silenced
-      (let ((prior (save-excursion (skip-syntax-backward "^ >") (point))))
-        ad-do-it
+(defun ems--eshell-pcomplete-around (orig-fun &rest args)
+  "Say what you completed."
+  (ems-with-messages-silenced
+      (let* ((prior (save-excursion (skip-syntax-backward "^ >") (point)))
+             (res (apply orig-fun args)))
         (if (> (point) prior)
             (tts-with-punctuations
              'all
              (dtk-speak
               (buffer-substring prior (point))))
           (emacsvox-speak-completions-if-available))
-        ad-return-value)))))
+        res)))
+
+(cl-loop
+ for f in
+ '(eshell-pcomplete eshell-complete-lisp-symbol)
+ do
+ (advice-add f :around #'ems--eshell-pcomplete-around))
 
 (defun ems--eshell-copy-old-input-after (&rest _)
   "Speak what was inserted."

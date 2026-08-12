@@ -248,14 +248,9 @@ Optional interactive prefix arg prompts for a filename."
                      (aref  *2048-board*  (+ col (* 4 row)))))
    *2048-rows*))
 
-(cl-loop
- for f in
- '(2048-left 2048-right 2048-down 2048-up)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak"
-     (when (ems-interactive-p)
+(defun ems--2048-left-after (&rest _)
+  "Speak"
+  (when (ems-interactive-p)
        (cond
         ((cl-some #'identity *2048-combines-this-move*)
          (emacsvox-icon 'item))
@@ -263,7 +258,13 @@ Optional interactive prefix arg prompts for a filename."
        (emacsvox-2048-speak-board)
        (cond
         ((2048-game-was-won) (emacsvox-icon 'task-done))
-        ((2048-game-was-lost) (emacsvox-icon 'alarm)))))))
+        ((2048-game-was-lost) (emacsvox-icon 'alarm)))))
+
+(cl-loop
+ for f in
+ '(2048-left 2048-right 2048-down 2048-up)
+ do
+ (advice-add f :after #'ems--2048-left-after))
 
 (defun ems--2048-insert-random-cell-after (&rest _)
   "Provide auditory icon" (emacsvox-icon 'item))

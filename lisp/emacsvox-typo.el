@@ -52,19 +52,16 @@
 
 ;;;  Interactive Commands:
 
+(defun ems--typo-insert-quotation-mark-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-this-char (preceding-char))))
+
 (cl-loop
- for f in 
- '(
-   typo-insert-quotation-mark typo-cycle-dashes typo-cycle-ellipsis
-   typo-cycle-left-angle-brackets typo-cycle-left-single-quotation-mark
-   typo-cycle-multiplication-signs typo-cycle-right-angle-brackets
-   typo-cycle-right-single-quotation-mark typo-cycle-spaces)
+ for f in
+ '(typo-insert-quotation-mark typo-cycle-dashes typo-cycle-ellipsis typo-cycle-left-angle-brackets typo-cycle-left-single-quotation-mark typo-cycle-multiplication-signs typo-cycle-right-angle-brackets typo-cycle-right-single-quotation-mark typo-cycle-spaces)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-this-char (preceding-char))))))
+ (advice-add f :after #'ems--typo-insert-quotation-mark-after))
 
 (provide 'emacsvox-typo)
 ;;;  end of file

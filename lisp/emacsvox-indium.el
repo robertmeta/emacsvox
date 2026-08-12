@@ -74,15 +74,16 @@
 
 (advice-add 'indium-quit :after #'ems--indium-quit-after)
 
+(defun ems--indium-reload-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)))
+
 (cl-loop
  for f in
  '(indium-reload indium-reconnect)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)))))
+ (advice-add f :after #'ems--indium-reload-after))
 
 ;;;  Advice indium-chrome.el
 
@@ -126,16 +127,17 @@
 
 (advice-add 'indium-repl-return :after #'ems--indium-repl-return-after)
 
+(defun ems--indium-repl-next-input-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(indium-repl-next-input indium-repl-previous-input)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--indium-repl-next-input-after))
 
 ;;;  Advice indium-scratch.el
 

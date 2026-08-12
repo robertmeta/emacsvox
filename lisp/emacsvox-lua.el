@@ -49,19 +49,17 @@
 (require 'emacsvox-preamble)
 
 ;;;  Advice Interactive Commands:
+(defun ems--lua-backwards-to-block-begin-or-end-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   lua-backwards-to-block-begin-or-end lua-beginning-of-proc
-   lua-end-of-proc
-   lua-forward-sexp lua-goto-matching-block)
+ '(lua-backwards-to-block-begin-or-end lua-beginning-of-proc lua-end-of-proc lua-forward-sexp lua-goto-matching-block)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--lua-backwards-to-block-begin-or-end-after))
 
 (defun ems--lua-start-process-after (&rest _)
   "speak."

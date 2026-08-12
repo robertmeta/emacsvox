@@ -59,28 +59,17 @@
 
 (advice-add 'gud-display-line :after #'ems--gud-display-line-after)
 
+(defun ems--gud-break-around (orig-fun &rest args)
+  "Silence minibuffer message that echoes command."
+  (let ((res (ems-with-messages-silenced (apply orig-fun args))))
+    (emacsvox-icon 'select-object)
+    res))
+
 (cl-loop
  for f in
- '(
-   gud-break
-   gud-tbreak
-   gud-remove
-   gud-step
-   gud-stepi
-   gud-next
-   gud-nexti
-   gud-cont
-   gud-finish
-   gud-jump
-   )
+ '(gud-break gud-tbreak gud-remove gud-step gud-stepi gud-next gud-nexti gud-cont gud-finish gud-jump)
  do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Silence minibuffer message that echoes command."
-     (ems-with-messages-silenced
-      ad-do-it
-      (emacsvox-icon 'select-object)
-      ad-return-value))))
+ (advice-add f :around #'ems--gud-break-around))
 
 ;;;  Advise interactive commands:
 

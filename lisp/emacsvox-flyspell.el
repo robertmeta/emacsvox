@@ -112,9 +112,9 @@ fly spell checking."
 (advice-add 'flyspell-auto-correct-word :around
             #'ems--flyspell-auto-correct-word-around)
 
-(defun ems--flyspell-unhighlight-at-before (&rest _)
+(defun ems--flyspell-unhighlight-at-before (pos &rest _)
   "handle highlight/unhighlight."
-  (let ((overlay-list (overlays-at (ad-get-arg 0))) (o nil))
+  (let ((overlay-list (overlays-at pos)) (o nil))
     (while overlay-list
       (setq o (car overlay-list))
       (when (flyspell-overlay-p o)
@@ -153,15 +153,16 @@ fly spell checking."
   (define-key flyspell-mode-map (kbd "C-;") 'flyspell-correct-wrapper)
   (require emacsvox-flyspell-correct))
 
+(defun ems--flyspell-correct-next-after (&rest _)
+  "Speak word."
+  (when (ems-interactive-p)
+       (dtk-speak (car (flyspell-get-word nil)))))
+
 (cl-loop
  for f in
  '(flyspell-correct-next flyspell-correct-previous flyspell-correct-at-point)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak word."
-     (when (ems-interactive-p)
-       (dtk-speak (car (flyspell-get-word nil)))))))
+ (advice-add f :after #'ems--flyspell-correct-next-after))
 
 (defun ems--flyspell-goto-next-error-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-speak-line)))

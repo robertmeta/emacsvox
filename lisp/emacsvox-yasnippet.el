@@ -54,18 +54,17 @@
 
 ;;;  Advice interactive commands:
 
-(cl-loop 
- for f in 
- '(
-   yas-prev-field yas-expand
-   yas-next-field yas-next-field-or-maybe-expand)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "provide feedback"
-     (let ((emacsvox-show-point t))
+(defun ems--yas-prev-field-after (&rest _)
+  "provide feedback"
+  (let ((emacsvox-show-point t))
        (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(yas-prev-field yas-expand yas-next-field yas-next-field-or-maybe-expand)
+ do
+ (advice-add f :after #'ems--yas-prev-field-after))
 
 (defun ems--yas-insert-snippet-after (&rest _)
   "Speak inserted template."

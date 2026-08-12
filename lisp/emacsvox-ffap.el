@@ -54,23 +54,17 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in 
- '(
-   ffap ffap-alternate-file ffap-alternate-file-other-window ffap-at-mouse
-   ffap-dired-other-frame ffap-dired-other-window
-   ffap-list-directory ffap-literally
-   ffap-next ffap-next-url
-   ffap-other-frame ffap-other-tab ffap-other-window
-   ffap-read-only ffap-read-only-other-frame
-   ffap-read-only-other-tab ffap-read-only-other-window)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--ffap-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-mode-line)))))
+       (emacsvox-speak-mode-line)))
+
+(cl-loop
+ for f in
+ '(ffap ffap-alternate-file ffap-alternate-file-other-window ffap-at-mouse ffap-dired-other-frame ffap-dired-other-window ffap-list-directory ffap-literally ffap-next ffap-next-url ffap-other-frame ffap-other-tab ffap-other-window ffap-read-only ffap-read-only-other-frame ffap-read-only-other-tab ffap-read-only-other-window)
+ do
+ (advice-add f :after #'ems--ffap-after))
 
 (provide 'emacsvox-ffap)
 ;;;  end of file

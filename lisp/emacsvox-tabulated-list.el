@@ -81,16 +81,17 @@
           (dtk-speak (concat name " " value))
         (dtk-speak  value)))))
 
+(defun ems--tabulated-list-next-column-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-objet)
+       (emacsvox-tabulated-list-speak-cell)))
+
 (cl-loop
- for f in 
+ for f in
  '(tabulated-list-next-column tabulated-list-previous-column)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-objet)
-       (emacsvox-tabulated-list-speak-cell)))))
+ (advice-add f :after #'ems--tabulated-list-next-column-after))
 
 (defun emacsvox-tabulated-list-next-row ()
   "Move to next row and speak that cell"

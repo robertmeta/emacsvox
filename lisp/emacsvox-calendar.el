@@ -112,15 +112,16 @@
 (add-hook 'calendar-mode-hook
           'emacsvox-calendar-setup)
 
-(cl-loop for f in
-         '(fancy-diary-display simple-diary-display
-                               diary-list-entries)
-         do
-         (eval
-          `(defadvice ,f (around emacsvox pre act com)
-             "Silence messages."
-             (let ((emacsvox-speak-messages (not (ems-interactive-p))))
-               ad-do-it))))
+(defun ems--fancy-diary-display-around (orig-fun &rest args)
+  "Silence messages."
+  (let ((emacsvox-speak-messages (not (ems-interactive-p))))
+    (apply orig-fun args)))
+
+(cl-loop
+ for f in
+ '(fancy-diary-display simple-diary-display diary-list-entries)
+ do
+ (advice-add f :around #'ems--fancy-diary-display-around))
 
 (defun ems--view-diary-entries-after (&rest _)
   "Speak the diary entries."
@@ -135,16 +136,15 @@
 
 (advice-add 'view-diary-entries :after #'ems--view-diary-entries-after)
 
-(defun ems--mark-visible-calendar-date-after (&rest _)
+(defun ems--mark-visible-calendar-date-after (date &rest _)
   "Use voice locking to mark date. "
-  (let ((date (ad-get-arg 0)))
-    (if (calendar-date-is-valid-p date)
+  (if (calendar-date-is-valid-p date)
         (save-current-buffer
           (set-buffer calendar-buffer)
           (calendar-cursor-to-visible-date date)
           (with-silent-modifications
             (put-text-property (1- (point)) (1+ (point)) 'personality
-                               emacsvox-calendar-mark-personality))))))
+                               emacsvox-calendar-mark-personality)))))
 
 (advice-add 'mark-visible-calendar-date :after
             #'ems--mark-visible-calendar-date-after)
@@ -302,15 +302,17 @@
 (advice-add 'calendar-end-of-year :after
             #'ems--calendar-end-of-year-after)
 
-(cl-loop for f in
-         '(exit-calendar calendar-exit calendar-quit)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "Speak modeline. "
-             (when (ems-interactive-p)
+(defun ems--exit-calendar-after (&rest _)
+  "Speak modeline. "
+  (when (ems-interactive-p)
                (emacsvox-icon 'close-object)
-               (emacsvox-speak-mode-line)))))
+               (emacsvox-speak-mode-line)))
+
+(cl-loop
+ for f in
+ '(exit-calendar calendar-exit calendar-quit)
+ do
+ (advice-add f :after #'ems--exit-calendar-after))
 
 (defun ems--insert-block-diary-entry-before (&rest _)
   "Speak the line. "
@@ -508,11 +510,10 @@
           (dtk-speak (buffer-string)))))
      (t (message "You have no appointments ")))))
 
-(defun ems--appt-add-after (&rest _)
+(defun ems--appt-add-after (time msg &rest _)
   "Confirm that the alarm got set."
   (when (ems-interactive-p)
-    (let ((time (ad-get-arg 0)) (message (ad-get-arg 1)))
-      (message "Set alarm %s at %s" message time))))
+    (message "Set alarm %s at %s" msg time)))
 
 (advice-add 'appt-add :after #'ems--appt-add-after)
 
@@ -551,27 +552,31 @@ To use, configure variable gmaps-my-address via M-x customize-variable."
 
 ;;;  Lunar Phases
 
-(cl-loop for f in
-         '(calendar-lunar-phases lunar-phases phases-of-moon)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
+(defun ems--calendar-lunar-phases-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
                (with-current-buffer lunar-phases-buffer
                  (emacsvox-icon 'open-object)
-                 (emacsvox-speak-buffer))))))
+                 (emacsvox-speak-buffer))))
 
-(cl-loop for f in
-         '(holidays calendar-list-holidays)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
+(cl-loop
+ for f in
+ '(calendar-lunar-phases lunar-phases phases-of-moon)
+ do
+ (advice-add f :after #'ems--calendar-lunar-phases-after))
+
+(defun ems--holidays-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
                (with-current-buffer holiday-buffer
                  (emacsvox-icon 'open-object)
-                 (emacsvox-speak-buffer))))))
+                 (emacsvox-speak-buffer))))
+
+(cl-loop
+ for f in
+ '(holidays calendar-list-holidays)
+ do
+ (advice-add f :after #'ems--holidays-after))
 
 (provide 'emacsvox-calendar)
 ;;;  emacs local variables

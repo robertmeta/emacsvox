@@ -63,101 +63,93 @@
 
 ;;;  Switching Buffers:
 
+(defun ems--evil-next-buffer-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-mode-line)))
+
 (cl-loop
  for f in
  '(evil-next-buffer evil-prev-buffer)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--evil-next-buffer-after))
 
 ;;;  Structured  Motion:
 
+(defun ems--evil-beginning-of-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   evil-beginning-of-line evil-end-of-line
-   evil-ret evil-window-top)
+ '(evil-beginning-of-line evil-end-of-line evil-ret evil-window-top)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--evil-beginning-of-line-after))
 
 ;; we want the next set to be a little less noisy and not play
 ;; auditory icons when they execute
+(defun ems--evil-next-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
  '(evil-next-line evil-previous-line)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--evil-next-line-after))
 
 ;; read visual lines when moving in visual lines 
+(defun ems--evil-next-visual-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-visual-line)))
+
 (cl-loop
  for f in
  '(evil-next-visual-line evil-previous-visual-line)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-visual-line)))))
+ (advice-add f :after #'ems--evil-next-visual-line-after))
+
+(defun ems--evil-goto-mark-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (let ((emacsvox-show-point t))
+         (emacsvox-icon 'large-movement)
+         (emacsvox-speak-line))))
 
 (cl-loop
  for f in
- '(
-   evil-goto-mark evil-goto-mark-line
-   evil-goto-definition evil-goto-first-line evil-goto-line
-   evil-forward-section-begin evil-forward-section-end
-   evil-backward-paragraph evil-forward-paragraph
-   evil-backward-section-begin evil-backward-section-end
-   evil-previous-open-paren evil-previous-match evil-next-match
-   evil-next-line-first-non-blank evil-next-line-1-first-non-blank
-   evil-next-close-paren evil-last-non-blank
-   evil-jump-backward evil-jump-forward evil-jump-to-tag
-   evil-forward-sentence-begin evil-first-non-blank
-   evil-backward-sentence-begin)
+ '(evil-goto-mark evil-goto-mark-line evil-goto-definition evil-goto-first-line evil-goto-line evil-forward-section-begin evil-forward-section-end evil-backward-paragraph evil-forward-paragraph evil-backward-section-begin evil-backward-section-end evil-previous-open-paren evil-previous-match evil-next-match evil-next-line-first-non-blank evil-next-line-1-first-non-blank evil-next-close-paren evil-last-non-blank evil-jump-backward evil-jump-forward evil-jump-to-tag evil-forward-sentence-begin evil-first-non-blank evil-backward-sentence-begin)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (let ((emacsvox-show-point t))
-         (emacsvox-icon 'large-movement)
-         (emacsvox-speak-line))))))
+ (advice-add f :after #'ems--evil-goto-mark-after))
+
+(defun ems--evil-scroll-down-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-current-window)))
 
 (cl-loop
  for f in
  '(evil-scroll-down evil-scroll-up)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-current-window)))))
+ (advice-add f :after #'ems--evil-scroll-down-after))
 
 ;;;  Word Motion
 
+(defun ems--evil-backward-word-begin-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-word)))
+
 (cl-loop
  for f in
- '(
-   evil-backward-word-begin evil-backward-word-end
-   evil-forward-word-begin evil-forward-word-end)
+ '(evil-backward-word-begin evil-backward-word-end evil-forward-word-begin evil-forward-word-end)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-word)))))
+ (advice-add f :after #'ems--evil-backward-word-begin-after))
 
 ;;;  Char Motion :
 
@@ -200,59 +192,60 @@
 
 (advice-add 'evil-delete-line :after #'ems--evil-delete-line-after)
 
-(defun ems--evil-delete-before (&rest _)
+(defun ems--evil-delete-before (beg end &rest _)
   "speak."
   (when (ems-interactive-p)
     (emacsvox-icon 'delete-object)
-    (emacsvox-speak-region (ad-get-arg 0) (ad-get-arg 1))))
+    (emacsvox-speak-region beg end)))
 
 (advice-add 'evil-delete :before #'ems--evil-delete-before)
 
 ;;;  Searching:
+(defun ems--evil-search-next-after (&rest _)
+  "Speak line with point highlighted."
+  (when (ems-interactive-p)
+       (let ((emacsvox-show-point t))
+         (emacsvox-speak-line)
+         (emacsvox-icon 'search-hit))))
+
 (cl-loop
  for f in
  '(evil-search-next evil-search-previous)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak line with point highlighted."
-     (when (ems-interactive-p)
-       (let ((emacsvox-show-point t))
-         (emacsvox-speak-line)
-         (emacsvox-icon 'search-hit))))))
+ (advice-add f :after #'ems--evil-search-next-after))
 
 ;;;  Completion:
+
+(defun ems--evil-complete-next-around (orig-fun &rest args)
+  "Speak what was completed."
+  (if (not (ems-interactive-p))
+      (apply orig-fun args)
+    (let* ((orig (save-excursion (skip-syntax-backward "^ >") (point)))
+           (res (ems-with-messages-silenced (apply orig-fun args))))
+      (emacsvox-icon 'complete)
+      (if (< orig (point))
+          (dtk-speak (buffer-substring orig (point)))
+        (dtk-speak (word-at-point)))
+      res)))
 
 (cl-loop
  for f in
  '(evil-complete-next evil-complete-previous)
  do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Speak what was completed."
-     (cond
-      ((ems-interactive-p)
-       (let ((orig (save-excursion (skip-syntax-backward "^ >") (point))))
-         (ems-with-messages-silenced
-          ad-do-it
-          (emacsvox-icon 'complete)
-          (if (< orig (point))
-              (dtk-speak (buffer-substring orig (point)))
-            (dtk-speak (word-at-point))))))
-      (t ad-do-it))
-     ad-return-value)))
+ (advice-add f :around #'ems--evil-complete-next-around))
+
+(defun ems--evil-complete-next-line-after (&rest _)
+  "Speak completed line."
+  (when (ems-interactive-p)
+       (let ((emacsvox-show-point t))
+         (emacsvox-icon 'complete)
+         (emacsvox-speak-line))))
 
 (cl-loop
  for f in
  '(evil-complete-next-line evil-complete-previous-line)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak completed line."
-     (when (ems-interactive-p)
-       (let ((emacsvox-show-point t))
-         (emacsvox-icon 'complete)
-         (emacsvox-speak-line))))))
+ (advice-add f :after #'ems--evil-complete-next-line-after))
 
 ;;;  Marks:
 

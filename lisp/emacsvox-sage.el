@@ -112,72 +112,59 @@
 (advice-add 'sage-shell-help:describe-symbol :after
             #'ems--sage-shell-help:describe-symbol-after)
 
+(defun ems--sage-shell-help:forward-history-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'help)
+       (emacsvox-speak-buffer)))
+
 (cl-loop
  for f in
- '(
-   sage-shell-help:forward-history sage-shell-help:backward-history
-   sage-shell:help)
+ '(sage-shell-help:forward-history sage-shell-help:backward-history sage-shell:help)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'help)
-       (emacsvox-speak-buffer)))))
+ (advice-add f :after #'ems--sage-shell-help:forward-history-after))
 
 (emacsvox-icon 'help)
 
 ;;;  Advice sage-edit:
 
+(defun ems--sage-shell-blocks:send-current-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)))
+
 (cl-loop
  for f in
- '(
-   sage-shell-blocks:send-current
-   sage-shell-edit:load-current-file
-   sage-shell-edit:load-current-file-and-go
-   sage-shell-edit:load-file
-   sage-shell-edit:load-file-and-go
-   sage-shell-edit:pop-to-process-buffer
-   sage-shell-edit:send--buffer
-   sage-shell-edit:send--buffer-and-go
-   sage-shell-edit:send-buffer
-   sage-shell-edit:send-buffer-and-go
-   sage-shell-edit:send-defun
-   sage-shell-edit:send-defun-and-go
-   sage-shell-edit:send-line-and-go
-   sage-shell-edit:send-region
-   sage-shell-edit:send-region-and-go)
+ '(sage-shell-blocks:send-current sage-shell-edit:load-current-file sage-shell-edit:load-current-file-and-go sage-shell-edit:load-file sage-shell-edit:load-file-and-go sage-shell-edit:pop-to-process-buffer sage-shell-edit:send--buffer sage-shell-edit:send--buffer-and-go sage-shell-edit:send-buffer sage-shell-edit:send-buffer-and-go sage-shell-edit:send-defun sage-shell-edit:send-defun-and-go sage-shell-edit:send-line-and-go sage-shell-edit:send-region sage-shell-edit:send-region-and-go)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)))))
+ (advice-add f :after #'ems--sage-shell-blocks:send-current-after))
+
+(defun ems--sage-shell-edit:send-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done))
+     (sit-for 0.1)
+     (emacsvox-sage-speak-output))
 
 (cl-loop
  for f in
  '(sage-shell-edit:send-line sage-shell-edit:send-line*)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done))
-     (sit-for 0.1)
-     (emacsvox-sage-speak-output))))
+ (advice-add f :after #'ems--sage-shell-edit:send-line-after))
 
 ;;;  sage-mode navigation:
+
+(defun ems--sage-shell-blocks:forward-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
  '(sage-shell-blocks:forward sage-shell-blocks:backward)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--sage-shell-blocks:forward-after))
 
 ;;;  sage comint interaction:
 
@@ -215,16 +202,17 @@
 (advice-add 'sage-shell:delete-output :after
             #'ems--sage-shell:delete-output-after)
 
+(defun ems--sage-shell:run-new-sage-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)
+       (emacsvox-speak-mode-line)))
+
 (cl-loop
  for f in
  '(sage-shell:run-new-sage sage-shell:run-sage)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--sage-shell:run-new-sage-after))
 
 (defun ems--sage-shell:copy-previous-output-to-kill-ring-after
     (&rest _)
@@ -247,23 +235,17 @@
 
 ;;;  sage sagetext:
 
+(defun ems--sage-shell-sagetex:compile-current-file-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)
+       (emacsvox-speak-mode-line)))
+
 (cl-loop
  for f in
- '(sage-shell-sagetex:compile-current-file
-   sage-shell-sagetex:compile-file
-   sage-shell-sagetex:error-mode
-   sage-shell-sagetex:load-current-file
-   sage-shell-sagetex:load-file
-   sage-shell-sagetex:run-latex-and-load-current-file
-   sage-shell-sagetex:run-latex-and-load-file
-   sage-shell-sagetex:send-environment)
+ '(sage-shell-sagetex:compile-current-file sage-shell-sagetex:compile-file sage-shell-sagetex:error-mode sage-shell-sagetex:load-current-file sage-shell-sagetex:load-file sage-shell-sagetex:run-latex-and-load-current-file sage-shell-sagetex:run-latex-and-load-file sage-shell-sagetex:send-environment)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--sage-shell-sagetex:compile-current-file-after))
 
 ;;;  Additional Interactive Commands:
 

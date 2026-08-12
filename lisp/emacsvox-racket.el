@@ -61,48 +61,41 @@
 
 ;;;  Interactive Commands:
 
+(defun ems--racket--orp/enter-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
  '(racket--orp/enter racket--orp/next racket--orp/prev racket--orp/quit)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--racket--orp/enter-after))
 
-(cl-loop
- for f in
- '(
-   racket--profile-next
-   racket--profile-prev racket--profile-quit
-   racket--profile-refresh racket--profile-show-zero
-   racket--profile-sort racket--profile-visit)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--racket--profile-next-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(
-   racket-visit-module racket-visit-definition
-   racket-smart-open-bracket racket-insert-lambda racket-insert-closing
-   racket-indent-line racket-check-syntax-mode-goto-def
-   racket-check-syntax-mode-goto-next-def racket-check-syntax-mode-goto-next-use
-   racket-check-syntax-mode-goto-prev-def racket-check-syntax-mode-goto-prev-use
-   racket-backward-up-list)
+ '(racket--profile-next racket--profile-prev racket--profile-quit racket--profile-refresh racket--profile-show-zero racket--profile-sort racket--profile-visit)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--racket--profile-next-after))
+
+(defun ems--racket-visit-module-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'large-movement)))))
+       (emacsvox-icon 'large-movement)))
+
+(cl-loop
+ for f in
+ '(racket-visit-module racket-visit-definition racket-smart-open-bracket racket-insert-lambda racket-insert-closing racket-indent-line racket-check-syntax-mode-goto-def racket-check-syntax-mode-goto-next-def racket-check-syntax-mode-goto-next-use racket-check-syntax-mode-goto-prev-def racket-check-syntax-mode-goto-prev-use racket-backward-up-list)
+ do
+ (advice-add f :after #'ems--racket-visit-module-after))
 
 (defun ems--racket-describe-after (&rest _)
   "speak."

@@ -108,18 +108,17 @@
 
 ;;;  Interactive Commands:
 
+(defun ems--vdiff-receive-changes-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)
+       (emacsvox-vdiff-speak-this-hunk)))
+
 (cl-loop
  for f in
- '(
-   vdiff-receive-changes vdiff-receive-changes-and-step
-   vdiff-send-changes vdiff-send-changes-and-step)
+ '(vdiff-receive-changes vdiff-receive-changes-and-step vdiff-send-changes vdiff-send-changes-and-step)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)
-       (emacsvox-vdiff-speak-this-hunk)))))
+ (advice-add f :after #'ems--vdiff-receive-changes-after))
 
 (defun ems--vdiff-switch-buffer-after (&rest _)
   "speak."
@@ -135,40 +134,42 @@
 (advice-add 'vdiff-refine-all-hunks :after
             #'ems--vdiff-refine-all-hunks-after)
 
+(defun ems--vdiff-buffers-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)
+       (emacsvox-speak-mode-line)))
+
 (cl-loop
  for f in
- '(vdiff-buffers vdiff-buffers3 vdiff-magit-compare
-                 vdiff-current-file vdiff-files vdiff-files3)
+ '(vdiff-buffers vdiff-buffers3 vdiff-magit-compare vdiff-current-file vdiff-files vdiff-files3)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--vdiff-buffers-after))
 
 ;;;  open/close Folds:
+(defun ems--vdiff-open-all-folds-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
  '(vdiff-open-all-folds vdiff-open-fold)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--vdiff-open-all-folds-after))
+
+(defun ems--vdiff-close-all-folds-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'close-object)
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
  '(vdiff-close-all-folds vdiff-close-fold vdiff-close-other-folds)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'close-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--vdiff-close-all-folds-after))
 
 ;;;  Navigation:
 
@@ -176,16 +177,17 @@
 ;;   "Silence messages."
 ;;   (ems-with-messages-silenced ad-do-it))
 
+(defun ems--vdiff-next-fold-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-vdiff-speak-this-hunk)
+       (emacsvox-icon 'large-movement)))
+
 (cl-loop
  for f in
  '(vdiff-next-fold vdiff-next-hunk vdiff-previous-fold vdiff-previous-hunk)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-vdiff-speak-this-hunk)
-       (emacsvox-icon 'large-movement)))))
+ (advice-add f :after #'ems--vdiff-next-fold-after))
 
 ;;;  Setup:
 

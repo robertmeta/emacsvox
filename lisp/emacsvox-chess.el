@@ -689,24 +689,24 @@ specifies index of move, default is final index."
                                            chess-display-index)))
 
 ;;;  Interactive Commands:
+(defun ems--chess-display-search-forward-around (orig-fun &rest args)
+  "speak."
+  (if (not (ems-interactive-p))
+      (apply orig-fun args)
+    (let ((orig chess-display-index)
+          (res (apply orig-fun args)))
+      (when (not (= orig chess-display-index))
+        (emacsvox-icon 'search-hit)
+        (dtk-speak
+         (emacsvox-chess-describe-move
+          chess-module-game chess-display-index)))
+      res)))
+
 (cl-loop
  for f in
  '(chess-display-search-forward chess-display-search-backward)
  do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "speak."
-     (cond
-      ((ems-interactive-p)
-       (let ((orig chess-display-index))
-         ad-do-it
-         (when (not (= orig chess-display-index))
-           (emacsvox-icon 'search-hit)
-           (dtk-speak
-            (emacsvox-chess-describe-move
-             chess-module-game chess-display-index)))))
-      (t ad-do-it))
-     ad-return-value)))
+ (advice-add f :around #'ems--chess-display-search-forward-around))
 
 (defun emacsvox-chess-state-speaker  ()
   "Helper function that describes game state."

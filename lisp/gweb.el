@@ -161,17 +161,19 @@ Uses corpus found in gweb-completion-corpus"
   "Autocomplete using News Search corpus."
   (let ((gweb-completion-corpus "n"))
     (gweb--autocomplete-helper (or prompt "News: "))))
-(cl-loop
- for f in
- '(ido-complete-space minibuffer-complete-word) do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Fix up ido-complete-space for use with Google autocomplete."
-     (cond
+(defun ems--ido-complete-space-around (orig-fun &rest args)
+  "Fix up ido-complete-space for use with Google autocomplete."
+  (cond
       (gweb-completion-flag (insert-char ?\ ))
       (t ad-do-it))
      (emacsvox-speak-word)
-     ad-return-value)))
+     ad-return-value)
+
+(cl-loop
+ for f in
+ '(ido-complete-space minibuffer-complete-word)
+ do
+ (advice-add f :around #'ems--ido-complete-space-around))
 
 (provide 'gweb)
 ;;;  end of file

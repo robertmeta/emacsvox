@@ -69,20 +69,18 @@
 (advice-add 'c-electric-delete-forward :around
             #'ems--c-electric-delete-forward-around)
 
+(defun ems--c-hungry-delete-forward-around (orig-fun &rest args)
+  "Speak character you're deleting."
+  (when (ems-interactive-p)
+    (dtk-tone-deletion)
+    (emacsvox-speak-this-char (preceding-char)))
+  (apply orig-fun args))
+
 (cl-loop
  for f in
  '(c-hungry-delete-forward c-hungry-delete-backwards c-electric-backspace)
  do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Speak character you're deleting."
-     (cond
-      ((ems-interactive-p)
-       (dtk-tone-deletion)
-       (emacsvox-speak-this-char (preceding-char))
-       ad-do-it)
-      (t ad-do-it))
-     ad-return-value)))
+ (advice-add f :around #'ems--c-hungry-delete-forward-around))
 
 ;;;   advice things to speak
 ;;;   Electric chars speak
@@ -377,18 +375,17 @@ and their meanings. ")
 
 ;;;  Additional Interactive Commands:
 
+(defun ems--c-previous-statement-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   c-previous-statement c-next-statement
-   c-awk-beginning-of-defun c-awk-end-of-defunm)
+ '(c-previous-statement c-next-statement c-awk-beginning-of-defun c-awk-end-of-defunm)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--c-previous-statement-after))
 
 (defun ems--c-backslash-region-after (&rest _)
   "speak."
@@ -398,54 +395,52 @@ and their meanings. ")
 
 (advice-add 'c-backslash-region :after #'ems--c-backslash-region-after)
 
+(defun ems--c-context-line-break-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)
+       (emacsvox-icon 'open-object)))
+
 (cl-loop
  for f in
  '(c-context-line-break c-context-open-line)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--c-context-line-break-after))
+
+(defun ems--c-up-conditional-with-else-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'open-object)))))
+       (emacsvox-icon 'large-movement)))
 
 (cl-loop
  for f in
  '(c-up-conditional-with-else c-down-conditional-with-else c-down-conditional)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)
-       (emacsvox-icon 'large-movement)))))
-(cl-loop
- for f in
- '(
-   c-indent-new-comment-line c-indent-line-or-region
-   c-indent-exp c-fill-paragraph)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--c-up-conditional-with-else-after))
+(defun ems--c-indent-new-comment-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'fill-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(
-   c-toggle-auto-hungry-state c-toggle-auto-newline
-   c-toggle-auto-state c-toggle-electric-state
-   c-toggle-hungry-state c-toggle-parse-state-debug
-   c-toggle-syntactic-indentation)
+ '(c-indent-new-comment-line c-indent-line-or-region c-indent-exp c-fill-paragraph)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--c-indent-new-comment-line-after))
+
+(defun ems--c-toggle-auto-hungry-state-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'button)
-       (message   "Toggled %s"  ,(symbol-name f))))))
+       (message   "Toggled %s"  ,(symbol-name f))))
+
+(cl-loop
+ for f in
+ '(c-toggle-auto-hungry-state c-toggle-auto-newline c-toggle-auto-state c-toggle-electric-state c-toggle-hungry-state c-toggle-parse-state-debug c-toggle-syntactic-indentation)
+ do
+ (advice-add f :after #'ems--c-toggle-auto-hungry-state-after))
 
 ;;;  Additional keybindings:
 

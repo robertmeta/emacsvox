@@ -64,19 +64,19 @@
 
 (advice-add 'annotate-annotate :after #'ems--annotate-annotate-after)
 
-(cl-loop
- for f in 
- '(annotate-goto-next-annotation
-   annotate-goto-previous-annotation)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--annotate-goto-next-annotation-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (let ((o (cl-first (overlays-at (point)))))
          (emacsvox-icon 'large-movement)
          (emacsvox-speak-line)
-         (dtk-notify (overlay-get o 'annotation)))))))
+         (dtk-notify (overlay-get o 'annotation)))))
+
+(cl-loop
+ for f in
+ '(annotate-goto-next-annotation annotate-goto-previous-annotation)
+ do
+ (advice-add f :after #'ems--annotate-goto-next-annotation-after))
 
 (provide 'emacsvox-annotate)
 ;;;  end of file

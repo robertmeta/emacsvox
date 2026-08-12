@@ -66,27 +66,25 @@
 
 (advice-add 'tide-compile-file :after #'ems--tide-compile-file-after)
 
-(defun ems--tide-documentation-at-point-after (&rest _)
+(defun ems--tide-documentation-at-point-after (&optional documentation &rest _)
   "Speak documentation if any."
-  (let ((documentation (ad-get-arg 0)))
-    (when documentation
-      (dtk-speak documentation) (emacsvox-icon 'help))))
+  (when documentation
+    (dtk-speak documentation) (emacsvox-icon 'help)))
 
 (advice-add 'tide-documentation-at-point :after
             #'ems--tide-documentation-at-point-after)
 
+(defun ems--tide-find-next-reference-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   tide-find-next-reference tide-find-previous-reference tide-goto-reference
-   tide-jump-back tide-jump-to-definition)
+ '(tide-find-next-reference tide-find-previous-reference tide-goto-reference tide-jump-back tide-jump-to-definition)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--tide-find-next-reference-after))
 
 (defun ems--tide-format-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-icon 'task-done)))

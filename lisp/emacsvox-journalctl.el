@@ -61,30 +61,29 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in 
- '(journalctl-boot journalctl
-                   journalctl-unit journalctl-user-unit)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--journalctl-boot-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
- for f in 
- '(
-   journalctl-scroll-up journalctl-scroll-down
-   journalctl-previous-chunk journalctl-next-chunkfunctions)
+ for f in
+ '(journalctl-boot journalctl journalctl-unit journalctl-user-unit)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--journalctl-boot-after))
+
+(defun ems--journalctl-scroll-up-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'scroll)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(journalctl-scroll-up journalctl-scroll-down journalctl-previous-chunk journalctl-next-chunkfunctions)
+ do
+ (advice-add f :after #'ems--journalctl-scroll-up-after))
 
 (defun ems--journalctl-quit-after (&rest _)
   "speak."

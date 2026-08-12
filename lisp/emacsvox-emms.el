@@ -64,48 +64,52 @@
   (message
    (cdr (assq 'name (emms-playlist-current-selected-track)))))
 
-(cl-loop for f in
-         '(emms-next emms-next-noerror emms-previous)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "Speak track name."
-             (when (ems-interactive-p)
-               (emacsvox-icon 'select-object)))))
-
-;; these commands should not be made to talk since that would  interferes
-;; with real work.
-(cl-loop for f in
-         '(emms-start emms-stop emms-sort
-                      emms-shuffle emms-random emms-playlist-mode-play-smart)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "Provide auditory icon."
-             (when (ems-interactive-p)
-               (emacsvox-icon 'select-object)))))
+(defun ems--emms-next-after (&rest _)
+  "Speak track name."
+  (when (ems-interactive-p)
+               (emacsvox-icon 'select-object)))
 
 (cl-loop
  for f in
- '(emms-playlist-first emms-playlist-last
-                       emms-playlist-mode-first emms-playlist-mode-last)
+ '(emms-next emms-next-noerror emms-previous)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--emms-next-after))
+
+;; these commands should not be made to talk since that would  interferes
+;; with real work.
+(defun ems--emms-start-after (&rest _)
+  "Provide auditory icon."
+  (when (ems-interactive-p)
+               (emacsvox-icon 'select-object)))
+
+(cl-loop
+ for f in
+ '(emms-start emms-stop emms-sort emms-shuffle emms-random emms-playlist-mode-play-smart)
+ do
+ (advice-add f :after #'ems--emms-start-after))
+
+(defun ems--emms-playlist-first-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
-(cl-loop for f in
-         '(emms-browser emms-browser-next-filter
-                        emms-browser-previous-filter)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(emms-playlist-first emms-playlist-last emms-playlist-mode-first emms-playlist-mode-last)
+ do
+ (advice-add f :after #'ems--emms-playlist-first-after))
+(defun ems--emms-browser-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
                (emacsvox-speak-mode-line)
-               (emacsvox-icon 'open-object)))))
+               (emacsvox-icon 'open-object)))
+
+(cl-loop
+ for f in
+ '(emms-browser emms-browser-next-filter emms-browser-previous-filter)
+ do
+ (advice-add f :after #'ems--emms-browser-after))
 
 (defun ems--emms-browser-bury-buffer-after (&rest _)
   "speak."
@@ -116,27 +120,27 @@
             #'ems--emms-browser-bury-buffer-after)
 
 ;;; Playlists
-(cl-loop for f in
-         '(emms-playlist-mode-go
-           emms-playlist-mode-next
-           emms-playlist-mode-previous
-           emms-playlist-mode-switch-buffer
-           )
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
-               (emacsvox-speak-mode-line)))))
+(defun ems--emms-playlist-mode-go-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+               (emacsvox-speak-mode-line)))
 
-(cl-loop for f in
-         '(emms-playlist-clear emms-playlist-mode-kill-track)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
-               (emacsvox-icon 'task-done)))))
+(cl-loop
+ for f in
+ '(emms-playlist-mode-go emms-playlist-mode-next emms-playlist-mode-previous emms-playlist-mode-switch-buffer)
+ do
+ (advice-add f :after #'ems--emms-playlist-mode-go-after))
+
+(defun ems--emms-playlist-clear-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+               (emacsvox-icon 'task-done)))
+
+(cl-loop
+ for f in
+ '(emms-playlist-clear emms-playlist-mode-kill-track)
+ do
+ (advice-add f :after #'ems--emms-playlist-clear-after))
 
 ;;;  Module emms-streaming:
 (cl-declaim (special emms-stream-mode-map))
@@ -163,25 +167,27 @@
 (advice-add 'emms-stream-save-bookmarks-file :after
             #'ems--emms-stream-save-bookmarks-file-after)
 
-(cl-loop for f in
-         '(emms-streams emms-stream-quit
-                        emms-stream-popup emms-stream-popup-revert
-                        )
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
-               (emacsvox-speak-mode-line)))))
+(defun ems--emms-streams-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+               (emacsvox-speak-mode-line)))
 
-(cl-loop for f in
-         '(emms-stream-next-line emms-stream-previous-line)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
-               (emacsvox-speak-line)))))
+(cl-loop
+ for f in
+ '(emms-streams emms-stream-quit emms-stream-popup emms-stream-popup-revert)
+ do
+ (advice-add f :after #'ems--emms-streams-after))
+
+(defun ems--emms-stream-next-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+               (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(emms-stream-next-line emms-stream-previous-line)
+ do
+ (advice-add f :after #'ems--emms-stream-next-line-after))
 
 (defun ems--emms-playlist-mode-bury-buffer-after (&rest _)
   "Announce the buffer that becomes current."

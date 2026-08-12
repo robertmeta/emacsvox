@@ -63,20 +63,17 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in 
- '(
-   forge-create-issue forge-create-post forge-create-pullreq
-   forge-list-issues forge-list-notifications forge-list-pullreqs
-   forge-list-visit-issue forge-list-visit-pullreq forge-visit-issue
-   forge-visit-pullreq forge-visit-topic)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--forge-create-issue-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(forge-create-issue forge-create-post forge-create-pullreq forge-list-issues forge-list-notifications forge-list-pullreqs forge-list-visit-issue forge-list-visit-pullreq forge-visit-issue forge-visit-pullreq forge-visit-topic)
+ do
+ (advice-add f :after #'ems--forge-create-issue-after))
 
 (provide 'emacsvox-forge)
 ;;;  end of file

@@ -57,18 +57,17 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in 
- '(flymake-goto-diagnostic
-   flymake-goto-next-error
-   flymake-goto-prev-error)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--flymake-goto-diagnostic-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(flymake-goto-diagnostic flymake-goto-next-error flymake-goto-prev-error)
+ do
+ (advice-add f :after #'ems--flymake-goto-diagnostic-after))
 
 (defun ems--flymake-compile-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-icon 'task-done)))

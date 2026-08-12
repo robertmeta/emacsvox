@@ -64,61 +64,52 @@
 
 ;;;  Advice interactive commands:
 
+(defun ems--elfeed-apply-hooks-now-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   elfeed-apply-hooks-now elfeed-search-browse-url
-   elfeed-show-entry elfeed-show-visit
-   elfeed-update-feed elfeed-update elfeed-show-refresh
-   elfeed-search-update--force elfeed-search-update
-   elfeed-search-untag-all-unread
-   elfeed-search-untag-all elfeed-search-tag-all-unread elfeed-search-tag-all
-   elfeed-load-opml elfeed-export-opml
-   elfeed-db-compact elfeed-add-feed
-   )
+ '(elfeed-apply-hooks-now elfeed-search-browse-url elfeed-show-entry elfeed-show-visit elfeed-update-feed elfeed-update elfeed-show-refresh elfeed-search-update--force elfeed-search-update elfeed-search-untag-all-unread elfeed-search-untag-all elfeed-search-tag-all-unread elfeed-search-tag-all elfeed-load-opml elfeed-export-opml elfeed-db-compact elfeed-add-feed)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--elfeed-apply-hooks-now-after))
+
+(defun ems--elfeed-show-tag-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
  '(elfeed-show-tag elfeed-show-untag)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--elfeed-show-tag-after))
 
-(cl-loop
- for f in
- '(
-   elfeed-show-entry elfeed-ssearch-show-entry
-   )
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--elfeed-show-entry-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(
-   elfeed-show-add-enclosure-to-playlist elfeed-show-play-enclosure
-   )
+ '(elfeed-show-entry elfeed-ssearch-show-entry)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)))))
+ (advice-add f :after #'ems--elfeed-show-entry-after))
+
+(defun ems--elfeed-show-add-enclosure-to-playlist-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)))
+
+(cl-loop
+ for f in
+ '(elfeed-show-add-enclosure-to-playlist elfeed-show-play-enclosure)
+ do
+ (advice-add f :after #'ems--elfeed-show-add-enclosure-to-playlist-after))
 
 (defun ems--elfeed-after (&rest _)
   "Emacsvox setup."
@@ -126,16 +117,17 @@
 
 (advice-add 'elfeed :after #'ems--elfeed-after)
 
+(defun ems--elfeed-kill-buffer-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'close-object)
+       (emacsvox-speak-mode-line)))
+
 (cl-loop
  for f in
- '(elfeed-kill-buffer  elfeed-search-quit-window)
+ '(elfeed-kill-buffer elfeed-search-quit-window)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act  comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'close-object)
-       (emacsvox-speak-mode-line)))))
+ (advice-add f :after #'ems--elfeed-kill-buffer-after))
 
 (defun ems--elfeed-search-yank-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-icon 'yank-object)))
@@ -207,15 +199,15 @@
      (t (message "No link under point.")))))
 
 ;;;  Silence warnings/errors
+(defun ems--elfeed-update-feed-around (orig-fun &rest args)
+  "Silence messages and errors."
+  (ems-with-errors-silenced (apply orig-fun args)))
+
 (cl-loop
  for f in
- '(elfeed-update-feed elfeed-handle-parse-error  elfeed-handle-http-error
-                      elfeed-unjam elfeed-update)
+ '(elfeed-update-feed elfeed-handle-parse-error elfeed-handle-http-error elfeed-unjam elfeed-update)
  do
- (eval
-  `(defadvice  ,f (around emacsvox pre act comp)
-     "Silence messages and errors."
-     (ems-with-errors-silenced ad-do-it))))
+ (advice-add f :around #'ems--elfeed-update-feed-around))
 
 ;;;  Set things up
 

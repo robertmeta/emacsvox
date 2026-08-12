@@ -83,15 +83,17 @@ Cue electric insertion with a tone."
 
 ;;;  Structure commands 
 
-(cl-loop for f in
-         '(ess-beginning-of-function ess-end-of-function)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "Produce auditory feedback."
-             (when (ems-interactive-p)
+(defun ems--ess-beginning-of-function-after (&rest _)
+  "Produce auditory feedback."
+  (when (ems-interactive-p)
                (emacsvox-icon 'large-movement)
-               (emacsvox-speak-line)))))
+               (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(ess-beginning-of-function ess-end-of-function)
+ do
+ (advice-add f :after #'ems--ess-beginning-of-function-after))
 
 (defun ems--ess-mark-function-after (&rest _)
   "speak."
@@ -140,16 +142,17 @@ Cue electric insertion with a tone."
 (advice-add 'ess-display-help-on-object :after
             #'ems--ess-display-help-on-object-after)
 
-(cl-loop for f in
-         '(
-           ess-switch-to-ess ess-switch-to-end-of-ESS)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
+(defun ems--ess-switch-to-ess-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
                (emacsvox-icon 'select-object)
-               (emacsvox-speak-mode-line)))))
+               (emacsvox-speak-mode-line)))
+
+(cl-loop
+ for f in
+ '(ess-switch-to-ess ess-switch-to-end-of-ESS)
+ do
+ (advice-add f :after #'ems--ess-switch-to-ess-after))
 
 ;;;  set up programming mode:
 

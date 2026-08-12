@@ -58,17 +58,16 @@
 
 ;;;  Interactive Commands: (rust-mode
 
+(defun ems--rust-compile-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)))
+
 (cl-loop
- for f in 
- '(
-   rust-compile rust-run rust-test
-   rust-run-clippy rust-promote-module-into-dir)
+ for f in
+ '(rust-compile rust-run rust-test rust-run-clippy rust-promote-module-into-dir)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done))))) 
+ (advice-add f :after #'ems--rust-compile-after)) 
 
 (defun ems--rust-dbg-wrap-or-unwrap-after (&rest _)
   "speak."
@@ -112,16 +111,17 @@
 (advice-add 'rust-disable-format-on-save :after
             #'ems--rust-disable-format-on-save-after)
 
+(defun ems--rust-beginning-of-defun-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
  '(rust-beginning-of-defun rust-end-of-defun)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--rust-beginning-of-defun-after))
 
 (defun emacsvox-rust-mode-setup ()
   "Setup additional keys etc."
@@ -136,19 +136,18 @@
 
 ;;; Interactive Commands: rustic
 
-(cl-loop
- for f in 
- '(
-   rustic-beginning-of-defun rustic-end-of-defun
-   rustic-beginning-of-function rustic-end-of-string)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--rustic-beginning-of-defun-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (let ((emacsvox-show-point t))
          (emacsvox-icon 'large-movement)
-         (emacsvox-speak-line))))))
+         (emacsvox-speak-line))))
+
+(cl-loop
+ for f in
+ '(rustic-beginning-of-defun rustic-end-of-defun rustic-beginning-of-function rustic-end-of-string)
+ do
+ (advice-add f :after #'ems--rustic-beginning-of-defun-after))
 
 (provide 'emacsvox-rust-mode)
 ;;;  end of file

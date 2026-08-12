@@ -98,103 +98,54 @@
    ))
 
 ;;;  Advice Interactive Commands:
+(defun ems--markdown-outdent-or-delete-around (orig-fun &rest args)
+  "Speak character you're deleting."
+  (when (ems-interactive-p)
+    (dtk-tone 500 100 'force)
+    (emacsvox-speak-this-char (preceding-char)))
+  (apply orig-fun args))
+
 (cl-loop
  for f in
  '(markdown-outdent-or-delete markdown-exdent-or-delete)
  do
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "Speak character you're deleting."
-     (cond
-      ((ems-interactive-p)
-       (dtk-tone 500 100 'force)
-       (emacsvox-speak-this-char (preceding-char))
-       ad-do-it)
-      (t ad-do-it))
-     ad-return-value)))
+ (advice-add f :around #'ems--markdown-outdent-or-delete-around))
 
-(cl-loop
- for f in
- '(
-   markdown-back-to-heading
-   markdown-backward-block markdown-backward-page
-   markdown-beginning-of-list markdown-beginning-of-text-block
-   markdown-edit-code-block markdown-end-of-list
-   markdown-end-of-text-block markdown-forward-block markdown-forward-page
-   markdown-insert-inline-link-dwim markdown-insert-kbd
-   markdown-insert-strike-through
-   markdown-outline-next markdown-outline-next-same-level
-   markdown-outline-previous
-   markdown-outline-previous-same-level markdown-outline-up
-   markdown-reference-goto-link
-   markdown-up-heading markdown-up-list
-   markdown-demote-subtree markdown-demote markdown-demote-list-item
-   markdown-promote-subtree markdown-move-subtree-up markdown-move-subtree-down
-   markdown-backward-paragraph markdown-cycle
-   markdown-enter-key
-   markdown-beginning-of-block markdown-beginning-of-defun
-   markdown-end-of-block markdown-end-of-block-element
-   markdown-insert-footnote markdown-insert-code
-   markdown-insert-bold markdown-insert-blockquote
-   markdown-forward-paragraph markdown-footnote-goto-text
-   markdown-end-of-defun markdown-insert-gfm-code-block
-   markdown-insert-header markdown-insert-header-atx-1
-   markdown-insert-header-atx-2 markdown-insert-header-atx-3
-   markdown-insert-header-atx-4 markdown-insert-header-atx-5
-   markdown-insert-header-atx-6 markdown-insert-header-dwim
-   markdown-insert-header-setext-1 markdown-insert-header-setext-2
-   markdown-insert-header-setext-dwim
-   markdown-insert-hr markdown-insert-image
-   markdown-insert-italic markdown-insert-link
-   markdown-insert-list-item markdown-insert-pre
-   markdown-insert-reference-image markdown-insert-reference-link-dwim
-   markdown-insert-uri markdown-insert-wiki-link
-   markdown-jump
-   markdown-move-down markdown-move-list-item-down
-   markdown-move-list-item-up markdown-move-up
-   markdown-next-visible-heading markdown-previous-visible-heading
-   markdown-next-heading markdown-previous-heading
-   markdown-forward-same-level markdown-backward-same-level
-   markdown-hide-subtree markdown-hide-body markdown-hide-sublevels
-   markdown-indent-line
-   markdown-next-link markdown-previous-link
-   markdown-promote markdown-promote-list-item
-   markdown-reference-goto-definition
-   )
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--markdown-back-to-heading-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(
-   markdown-check-refs markdown-check-change-for-wiki-link
-   markdown-export markdown-export-and-preview
-   markdown-indent-region markdown-blockquote-region)
+ '(markdown-back-to-heading markdown-backward-block markdown-backward-page markdown-beginning-of-list markdown-beginning-of-text-block markdown-edit-code-block markdown-end-of-list markdown-end-of-text-block markdown-forward-block markdown-forward-page markdown-insert-inline-link-dwim markdown-insert-kbd markdown-insert-strike-through markdown-outline-next markdown-outline-next-same-level markdown-outline-previous markdown-outline-previous-same-level markdown-outline-up markdown-reference-goto-link markdown-up-heading markdown-up-list markdown-demote-subtree markdown-demote markdown-demote-list-item markdown-promote-subtree markdown-move-subtree-up markdown-move-subtree-down markdown-backward-paragraph markdown-cycle markdown-enter-key markdown-beginning-of-block markdown-beginning-of-defun markdown-end-of-block markdown-end-of-block-element markdown-insert-footnote markdown-insert-code markdown-insert-bold markdown-insert-blockquote markdown-forward-paragraph markdown-footnote-goto-text markdown-end-of-defun markdown-insert-gfm-code-block markdown-insert-header markdown-insert-header-atx-1 markdown-insert-header-atx-2 markdown-insert-header-atx-3 markdown-insert-header-atx-4 markdown-insert-header-atx-5 markdown-insert-header-atx-6 markdown-insert-header-dwim markdown-insert-header-setext-1 markdown-insert-header-setext-2 markdown-insert-header-setext-dwim markdown-insert-hr markdown-insert-image markdown-insert-italic markdown-insert-link markdown-insert-list-item markdown-insert-pre markdown-insert-reference-image markdown-insert-reference-link-dwim markdown-insert-uri markdown-insert-wiki-link markdown-jump markdown-move-down markdown-move-list-item-down markdown-move-list-item-up markdown-move-up markdown-next-visible-heading markdown-previous-visible-heading markdown-next-heading markdown-previous-heading markdown-forward-same-level markdown-backward-same-level markdown-hide-subtree markdown-hide-body markdown-hide-sublevels markdown-indent-line markdown-next-link markdown-previous-link markdown-promote markdown-promote-list-item markdown-reference-goto-definition)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--markdown-back-to-heading-after))
+
+(defun ems--markdown-check-refs-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'task-done)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(
-   markdown-complete-region markdown-complete-buffer
-   markdown-complete-at-point markdown-complete)
+ '(markdown-check-refs markdown-check-change-for-wiki-link markdown-export markdown-export-and-preview markdown-indent-region markdown-blockquote-region)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--markdown-check-refs-after))
+
+(defun ems--markdown-complete-region-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'complete)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(markdown-complete-region markdown-complete-buffer markdown-complete-at-point markdown-complete)
+ do
+ (advice-add f :after #'ems--markdown-complete-region-after))
 ;;; Eepeat-mode:
 (cl-declaim (special markdown-mode-map))
 (when (and (bound-and-true-p markdown-mode-map) (keymapp  markdown-mode-map))

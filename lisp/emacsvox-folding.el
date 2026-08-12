@@ -51,15 +51,16 @@
 
 ;;;  Advice
 
+(defun ems--folding-backward-char-after (&rest _)
+  "Speak char."
+  (when (ems-interactive-p)
+       (emacsvox-speak-char t)))
+
 (cl-loop
  for f in
  '(folding-backward-char folding-forward-char)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak char."
-     (when (ems-interactive-p)
-       (emacsvox-speak-char t)))))
+ (advice-add f :after #'ems--folding-backward-char-after))
 
 (defun ems--folding-goto-line-after (&rest _)
   "Speak the line. " (when (ems-interactive-p) (emacsvox-speak-line)))
@@ -73,46 +74,43 @@
 
 (advice-add 'folding-mode :after #'ems--folding-mode-after)
 
-(cl-loop
- for f in
- '(
-   folding-context-next-action folding-toggle-show-hide folding-pick-move
-   folding-toggle-enter-exit folding-region-open-close
-   )do 
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Produce an auditory icon and then speak the line. "
-     (when (ems-interactive-p)
+(defun ems--folding-context-next-action-after (&rest _)
+  "Produce an auditory icon and then speak the line. "
+  (when (ems-interactive-p)
        (emacsvox-icon 'button)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(
-   folding-hide-current-subtree folding-hide-current-entry
-   folding-shift-out folding-whole-buffer)
+ '(folding-context-next-action folding-toggle-show-hide folding-pick-move folding-toggle-enter-exit folding-region-open-close)
  do
- (eval
-  `(defadvice  ,f (after emacsvox pre act comp)
-     "Produce an auditory icon.
+ (advice-add f :after #'ems--folding-context-next-action-after))
+
+(defun ems--folding-hide-current-subtree-after (&rest _)
+  "Produce an auditory icon.
 Then speak the folded line."
-     (when (ems-interactive-p)
+  (when (ems-interactive-p)
        (emacsvox-icon'close-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(
-   folding-show-all folding-show-current-entry folding-show-current-subtree
-   folding-shift-in folding-open-buffer)
+ '(folding-hide-current-subtree folding-hide-current-entry folding-shift-out folding-whole-buffer)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Produce an auditory icon.
+ (advice-add f :after #'ems--folding-hide-current-subtree-after))
+
+(defun ems--folding-show-all-after (&rest _)
+  "Produce an auditory icon.
 Then speak the  line."
-     (when (ems-interactive-p)
+  (when (ems-interactive-p)
        (emacsvox-icon'open-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(folding-show-all folding-show-current-entry folding-show-current-subtree folding-shift-in folding-open-buffer)
+ do
+ (advice-add f :after #'ems--folding-show-all-after))
 
 (defun ems--folding-fold-region-after (&rest _)
   "Produce an auditory icon. "
@@ -123,16 +121,17 @@ Then speak the  line."
 (advice-add 'folding-fold-region :after
             #'ems--folding-fold-region-after)
 
+(defun ems--folding-previous-visible-heading-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(folding-previous-visible-heading folding-next-visible-heading)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--folding-previous-visible-heading-after))
 
 ;;;  Fix keymap:
 (add-hook

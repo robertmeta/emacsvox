@@ -69,34 +69,30 @@
     (emacsvox-speak-line)))
 
 ;;;   advice  interactive commands
-(cl-loop for f in 
-         '(
-           next-error previous-error
-           compilation-next-file compilation-previous-file
-           compile-goto-error compile-mouse-goto-error
-           )
-         do
-         (eval
-          `(defadvice ,f (after  emacsvox pre act comp)
-             "Speak the line containing the error. "
-             (when (ems-interactive-p)
+(defun ems--next-error-after (&rest _)
+  "Speak the line containing the error. "
+  (when (ems-interactive-p)
                (dtk-stop 'all)
                (emacsvox-icon 'large-movement)
-               (emacsvox-compilation-speak-error)))))
+               (emacsvox-compilation-speak-error)))
 
-(cl-loop for f in 
-         '(
-           compilation-next-error
-           compilation-previous-error
-           next-error-no-select
-           previous-error-no-select)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "Speak."
-             (when (ems-interactive-p)
+(cl-loop
+ for f in
+ '(next-error previous-error compilation-next-file compilation-previous-file compile-goto-error compile-mouse-goto-error)
+ do
+ (advice-add f :after #'ems--next-error-after))
+
+(defun ems--compilation-next-error-after (&rest _)
+  "Speak."
+  (when (ems-interactive-p)
                (emacsvox-speak-line)
-               (emacsvox-icon 'select-object)))))
+               (emacsvox-icon 'select-object)))
+
+(cl-loop
+ for f in
+ '(compilation-next-error compilation-previous-error next-error-no-select previous-error-no-select)
+ do
+ (advice-add f :after #'ems--compilation-next-error-after))
 
 ;;;  advise process filter and sentinels
 
@@ -107,10 +103,9 @@
 
 (advice-add 'compile :after #'ems--compile-after)
 
-(defun ems--compilation-sentinel-after (&rest _)
+(defun ems--compilation-sentinel-after (proc msg &rest _)
   "speak" (emacsvox-icon 'task-done)
-  (message "process %s %s" (process-name (ad-get-arg 0))
-           (ad-get-arg 1)))
+  (message "process %s %s" (process-name proc) msg))
 
 (advice-add 'compilation-sentinel :after
             #'ems--compilation-sentinel-after)

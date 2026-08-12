@@ -51,20 +51,17 @@
 
 ;;;   Navigating through an outline:
 
-(cl-loop
- for f in 
- '(
-   outline-next-heading outline-previous-heading outline-next-preface
-   outline-next-visible-heading outline-previous-visible-heading
-   outline-back-to-heading outline-up-heading
-   outline-backward-same-level outline-forward-same-level)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--outline-next-heading-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'section)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(outline-next-heading outline-previous-heading outline-next-preface outline-next-visible-heading outline-previous-visible-heading outline-back-to-heading outline-up-heading outline-backward-same-level outline-forward-same-level)
+ do
+ (advice-add f :after #'ems--outline-next-heading-after))
 
 ;;; outline-flag-region:
 
@@ -73,31 +70,31 @@
 
 (defvar ems--voiceify-overlays)
 
-(defun ems--outline-flag-region-around (orig-fun &rest args)
+(defun ems--outline-flag-region-around (orig-fun beg end flag &rest args)
   "Reflect hide/show via property invisible as well"
   (let
-      ((ems--voiceify-overlays nil) (beg (ad-get-arg 0))
-       (end (ad-get-arg 1)) (inhibit-read-only t))
-    (apply orig-fun args) (when (zerop beg) (setq beg (point-min)))
+      ((ems--voiceify-overlays nil) (inhibit-read-only t))
+    (apply orig-fun beg end flag args) (when (zerop beg) (setq beg (point-min)))
     (with-silent-modifications
       (put-text-property beg end 'invisible
-                         (if (ad-get-arg 2) 'outline nil)))))
+                         (if flag 'outline nil)))))
 
 (advice-add 'outline-flag-region :around
             #'ems--outline-flag-region-around)
 
 ;;; Misc Commands:
 
+(defun ems--outline-insert-heading-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
- for f in 
+ for f in
  '(outline-insert-heading outline-cycle-buffer outline-cycle)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--outline-insert-heading-after))
 
 ;;;   Hiding and showing subtrees
 

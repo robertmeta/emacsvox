@@ -168,43 +168,30 @@
 
 (advice-add 'magit-mark-item :after #'ems--magit-mark-item-after)
 
+(defun ems--magit-section-forward-after (&rest _)
+  "speak"
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   magit-section-forward magit-section-backward magit-section-up
-   magit-next-line magit-previous-line
-   magit-section-forward-sibling magit-section-backward-sibling
-   magit-ignore-file magit-ignore-item
-   magit-stash
-   magit-unstage magit-unstage-all magit-unstage-file
-   magit-stage magit-stage-file  magit-stage-modified
-   magit-ignore-item-locally)
+ '(magit-section-forward magit-section-backward magit-section-up magit-next-line magit-previous-line magit-section-forward-sibling magit-section-backward-sibling magit-ignore-file magit-ignore-item magit-stash magit-unstage magit-unstage-all magit-unstage-file magit-stage magit-stage-file magit-stage-modified magit-ignore-item-locally)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak"
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--magit-section-forward-after))
 
 ;;;  Section Toggle:
 
+(defun ems--magit-section-show-children-after (&rest _)
+  "speak."
+  (emacsvox-speak-line)
+     (emacsvox-icon 'open-object))
+
 (cl-loop
  for f in
- '(
-   magit-section-show-children magit-section-show-headings
-   magit-show-commit
-   magit-section-show-level-1  magit-section-show-level-2
-   magit-section-show-level-3 magit-section-show-level-4
-   magit-section-show-level-1-all magit-section-show-level-2-all
-   magit-section-show-level-3-all magit-section-show-level-4-all
-   magit-section-cycle-diffs)
+ '(magit-section-show-children magit-section-show-headings magit-show-commit magit-section-show-level-1 magit-section-show-level-2 magit-section-show-level-3 magit-section-show-level-4 magit-section-show-level-1-all magit-section-show-level-2-all magit-section-show-level-3-all magit-section-show-level-4-all magit-section-cycle-diffs)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (emacsvox-speak-line)
-     (emacsvox-icon 'open-object))))
+ (advice-add f :after #'ems--magit-section-show-children-after))
 
 (defun ems--magit-section-hide-after (&rest _)
   "Icon." (emacsvox-icon 'close-object))
@@ -219,18 +206,18 @@
 (advice-add 'magit-section-cycle-global :after
             #'ems--magit-section-cycle-global-after)
 
-(cl-loop
- for f in
- '(
-   magit-section-toggle magit-section-cycle)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--magit-section-toggle-after (section &rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
        (emacsvox-icon
-        (if   (oref (ad-get-arg 0) hidden) 'close-object 'open-object))))))
+        (if   (oref section hidden) 'close-object 'open-object))))
+
+(cl-loop
+ for f in
+ '(magit-section-toggle magit-section-cycle)
+ do
+ (advice-add f :after #'ems--magit-section-toggle-after))
 
 ;;; blob mode:
 
@@ -250,15 +237,16 @@
 (advice-add 'magit-blob-visit-file :after
             #'ems--magit-blob-visit-file-after)
 
+(defun ems--magit-blob-previous-after (&rest _)
+  "Speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)))
+
 (cl-loop
- for f in 
+ for f in
  '(magit-blob-previous magit-blob-next)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)))))
+ (advice-add f :after #'ems--magit-blob-previous-after))
 
 ;;;  Additional commands to advice:
 
@@ -276,17 +264,18 @@
 
 (advice-add 'magit-status :after #'ems--magit-status-after)
 
+(defun ems--magit-mode-quit-window-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (with-current-buffer (window-buffer (selected-window))
+         (emacsvox-icon 'close-object)
+         (emacsvox-speak-mode-line))))
+
 (cl-loop
  for f in
  '(magit-mode-quit-window magit-mode-bury-buffer magit-log-bury-buffer)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act  comp)
-     "speak."
-     (when (ems-interactive-p)
-       (with-current-buffer (window-buffer (selected-window))
-         (emacsvox-icon 'close-object)
-         (emacsvox-speak-mode-line))))))
+ (advice-add f :after #'ems--magit-mode-quit-window-after))
 
 (defun ems--magit-refresh-all-after (&rest _)
   "speak."
@@ -321,18 +310,17 @@
     (buffer-substring (line-beginning-position) (line-end-position))
     (ems--display-props-get))))
 
+(defun ems--magit-blame-previous-chunk-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-magit-blame-speak)
+       (emacsvox-icon 'large-movement)))
+
 (cl-loop
  for f in
- '(
-   magit-blame-previous-chunk magit-blame-previous-chunk-same-commit
-   magit-blame-next-chunk magit-blame-next-chunk-same-commit)
+ '(magit-blame-previous-chunk magit-blame-previous-chunk-same-commit magit-blame-next-chunk magit-blame-next-chunk-same-commit)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-magit-blame-speak)
-       (emacsvox-icon 'large-movement)))))
+ (advice-add f :after #'ems--magit-blame-previous-chunk-after))
 
 (defun ems--magit-blame-quit-after (&rest _)
   "speak."

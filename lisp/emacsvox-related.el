@@ -51,16 +51,17 @@
 
 ;;;  Advice Interactive Commands:
 
+(defun ems--related-switch-forward-after (&rest _)
+  "Speech-enabled by emacsvox."
+  (when (ems-interactive-p)
+       (emacsvox-speak-mode-line)
+       (emacsvox-icon 'select-object)))
+
 (cl-loop
  for f in
  '(related-switch-forward related-switch-backward related-switch-buffer)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speech-enabled by emacsvox."
-     (when (ems-interactive-p)
-       (emacsvox-speak-mode-line)
-       (emacsvox-icon 'select-object)))))
+ (advice-add f :after #'ems--related-switch-forward-after))
 
 (provide 'emacsvox-related)
 ;;;  end of file

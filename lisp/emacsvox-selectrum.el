@@ -73,15 +73,17 @@
   
   )
 
-(defun ems--selectrum-select-current-candidate-after (&rest _)
+(defun ems--selectrum-select-current-candidate-around (orig-fun &rest args)
   "speak."
-  (when (ems-interactive-p)
-    (when (and ad-return-value (stringp ad-return-value))
-      (dtk-speak ad-return-value))
-    (emacsvox-icon 'close-object)))
+  (let ((res (apply orig-fun args)))
+    (when (ems-interactive-p)
+      (when (and res (stringp res))
+        (dtk-speak res))
+      (emacsvox-icon 'close-object))
+    res))
 
-(advice-add 'selectrum-select-current-candidate :after
-            #'ems--selectrum-select-current-candidate-after)
+(advice-add 'selectrum-select-current-candidate :around
+            #'ems--selectrum-select-current-candidate-around)
 
 (defun ems--selectrum-submit-exact-input-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-icon 'close-object)))
@@ -104,29 +106,29 @@
 (advice-add 'selectrum-insert-current-candidate :around
             #'ems--selectrum-insert-current-candidate-around)
 
-(cl-loop
- for f in 
- '(
-   selectrum-next-page selectrum-previous-page
-   selectrum-goto-beginning selectrum-goto-end)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--selectrum-next-page-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
- for f in 
+ for f in
+ '(selectrum-next-page selectrum-previous-page selectrum-goto-beginning selectrum-goto-end)
+ do
+ (advice-add f :after #'ems--selectrum-next-page-after))
+
+(defun ems--selectrum-previous-candidate-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
  '(selectrum-previous-candidate selectrum-next-candidate)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--selectrum-previous-candidate-after))
 
 (provide 'emacsvox-selectrum)
 ;;;  end of file

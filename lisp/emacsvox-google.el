@@ -545,18 +545,17 @@ current page."
 
 (advice-add 'gmaps :after #'ems--gmaps-after)
 
-(cl-loop for f in
-         '(gmaps-driving-directions
-           gmaps-bicycling-directions
-           gmaps-walking-directions gmaps-transit-directions
-           gmaps-places-nearby gmaps-places-search)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
+(defun ems--gmaps-driving-directions-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
                (emacsvox-icon 'task-done)
-               (emacsvox-speak-rest-of-buffer)))))
+               (emacsvox-speak-rest-of-buffer)))
+
+(cl-loop
+ for f in
+ '(gmaps-driving-directions gmaps-bicycling-directions gmaps-walking-directions gmaps-transit-directions gmaps-places-nearby gmaps-places-search)
+ do
+ (advice-add f :after #'ems--gmaps-driving-directions-after))
 
 (defun ems--gmaps-set-current-location-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-speak-header-line)))

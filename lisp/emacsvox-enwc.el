@@ -80,16 +80,16 @@
 
 (advice-add 'enwc :after #'ems--enwc-after)
 
+(defun ems--enwc-connect-to-network-at-point-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)))
+
 (cl-loop
- for f in 
- '(enwc-connect-to-network-at-point enwc-connect-to-network
-                                    enwc-connect-to-network-essid)
+ for f in
+ '(enwc-connect-to-network-at-point enwc-connect-to-network enwc-connect-to-network-essid)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)))))
+ (advice-add f :after #'ems--enwc-connect-to-network-at-point-after))
 
 (provide 'emacsvox-enwc)
 ;;;  end of file

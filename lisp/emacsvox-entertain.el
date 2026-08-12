@@ -52,9 +52,9 @@
 
 ;;;  doctar
 
-(defun ems--doctor-txtype-after (&rest _)
+(defun ems--doctor-txtype-after (list &rest _)
   (dtk-speak
-   (mapconcat #'(lambda (s) (format "%s" s)) (ad-get-arg 0) " ")))
+   (mapconcat #'(lambda (s) (format "%s" s)) list " ")))
 
 (advice-add 'doctor-txtype :after #'ems--doctor-txtype-after)
 
@@ -66,20 +66,21 @@
    (mpuz-solved voice-animate)))
 
 ;;;  dunnet
+(defun ems--dun-parse-around (orig-fun &rest args)
+  "speak"
+  (if (not (ems-interactive-p))
+      (apply orig-fun args)
+    (let* ((orig (point))
+           (res (apply orig-fun args)))
+      (emacsvox-icon 'mark-object)
+      (emacsvox-speak-region orig (point))
+      res)))
+
 (cl-loop
  for f in
- '(dun-parse dun-unix-parse) do 
- (eval
-  `(defadvice ,f (around emacsvox pre act comp)
-     "speak"
-     (cond
-      ((ems-interactive-p)
-       (let ((orig (point)))
-         ad-do-it
-         (emacsvox-icon 'mark-object)
-         (emacsvox-speak-region orig (point))))
-      (t ad-do-it))
-     ad-return-value)))
+ '(dun-parse dun-unix-parse)
+ do
+ (advice-add f :around #'ems--dun-parse-around))
 
 ;;;   hangman
 

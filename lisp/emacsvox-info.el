@@ -98,24 +98,16 @@ node -- speak the entire node."
     (emacsvox-speak-buffer))
    (t (emacsvox-speak-line))))
 
+(defun ems--info-after (&rest _)
+  " Speak the selected node based on setting of
+emacsvox-info-select-node-speak-chunk"
+  (when (ems-interactive-p) (emacsvox-info-visit-node)))
+
 (cl-loop
  for f in
- '(info info-display-manual Info-select-node
-        Info-follow-reference Info-goto-node info-emacs-manual
-        Info-top-node Info-menu-last-node  Info-final-node Info-up
-        Info-goto-emacs-key-command-node Info-goto-emacs-command-node
-        Info-history Info-virtual-index Info-directory Info-help
-        Info-nth-menu-item
-        Info-menu Info-follow-nearest-node
-        Info-history-back Info-history-forward
-        Info-backward-node Info-forward-node
-        Info-next Info-prev)
+ '(info info-display-manual Info-select-node Info-follow-reference Info-goto-node info-emacs-manual Info-top-node Info-menu-last-node Info-final-node Info-up Info-goto-emacs-key-command-node Info-goto-emacs-command-node Info-history Info-virtual-index Info-directory Info-help Info-nth-menu-item Info-menu Info-follow-nearest-node Info-history-back Info-history-forward Info-backward-node Info-forward-node Info-next Info-prev)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     " Speak the selected node based on setting of
-emacsvox-info-select-node-speak-chunk"
-     (when (ems-interactive-p) (emacsvox-info-visit-node)))))
+ (advice-add f :after #'ems--info-after))
 
 (defun ems--Info-search-after (&rest _)
   "speak."

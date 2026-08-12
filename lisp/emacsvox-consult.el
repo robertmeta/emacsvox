@@ -105,31 +105,29 @@
 
 (add-hook 'consult-after-jump-hook #'emacsvox-speak-line)
 
-(cl-loop
- for f in 
- '(consult-bookmark
-   consult-compile-error)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--consult-bookmark-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
- for f in 
- '(
-   consult-buffer consult-buffer-other-frame
-   consult-buffer-other-tab consult-buffer-other-window
-   consult-find consult-fd)
+ for f in
+ '(consult-bookmark consult-compile-error)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--consult-bookmark-after))
+
+(defun ems--consult-buffer-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-mode-line)))))
+       (emacsvox-speak-mode-line)))
+
+(cl-loop
+ for f in
+ '(consult-buffer consult-buffer-other-frame consult-buffer-other-tab consult-buffer-other-window consult-find consult-fd)
+ do
+ (advice-add f :after #'ems--consult-buffer-after))
 
 ;;; Set it up:
 (defvar  emacsvox-consult-keymap nil "Emacsvox consult keymap")

@@ -86,31 +86,30 @@
   elpher-view-raw
   )
 
-(cl-loop
- for f in 
- '(
-   elpher-back elpher-back-to-start elpher elpher-root-dir
-   elpher-follow-current-link  elpher-jump
-   elpher-go elpher-go-current elpher-reload)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--elpher-back-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-mode-line)
-       (emacsvox-icon 'open-object)))))
+       (emacsvox-icon 'open-object)))
 
 (cl-loop
- for f in 
- '(elpher-prev-link elpher-next-link)
+ for f in
+ '(elpher-back elpher-back-to-start elpher elpher-root-dir elpher-follow-current-link elpher-jump elpher-go elpher-go-current elpher-reload)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--elpher-back-after))
+
+(defun ems--elpher-prev-link-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'large-movement)
        (dtk-speak
-        (car (get-text-property (point) 'elpher-page)))))))
+        (car (get-text-property (point) 'elpher-page)))))
+
+(cl-loop
+ for f in
+ '(elpher-prev-link elpher-next-link)
+ do
+ (advice-add f :after #'ems--elpher-prev-link-after))
 
 (provide 'emacsvox-elpher)
 ;;;  end of file

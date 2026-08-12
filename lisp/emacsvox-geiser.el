@@ -70,83 +70,65 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f in
- '(
-   geiser run-geiser
-   geiser--switch-to-repl
-   geiser-mode-switch-to-repl geiser-doc-switch-to-repl
-   geiser-mode-switch-to-repl-and-enter geiser-show-logs)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--geiser-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-mode-line)
-       (emacsvox-icon 'open-object)))))
+       (emacsvox-icon 'open-object)))
 
 (cl-loop
  for f in
- '(
-   geiser-compile-current-buffer geiser-compile-definition
-   geiser-compile-definition-and-go geiser-compile-file geiser-eval-buffer
-   geiser-eval-buffer-and-go geiser-eval-definition
-   geiser-eval-definition-and-go
-   geiser-eval-last-sexp geiser-eval-region geiser-eval-region-and-go
-   geiser-expand-definition geiser-expand-last-sexp geiser-expand-region
-   geiser-load-current-buffer geiser-load-file
-   geiser-log-clear geiser-repl-clear-buffer
-   geiser-squarify geiser-pop-symbol-stack geiser-insert-lambda)
+ '(geiser run-geiser geiser--switch-to-repl geiser-mode-switch-to-repl geiser-doc-switch-to-repl geiser-mode-switch-to-repl-and-enter geiser-show-logs)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--geiser-after))
+
+(defun ems--geiser-compile-current-buffer-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'task-done)))))
+       (emacsvox-icon 'task-done)))
 
 (cl-loop
  for f in
- '(
-   geiser-doc-edit-symbol-at-point
-   geiser-edit-symbol-at-point geiser-doc-symbol-at-point
-   geiser-doc-refresh geiser-doc-previous-section
-   geiser-doc-previous geiser-doc-next-section geiser-doc-next
-   geiser-doc-module geiser-doc-look-up-manual
-   geiser-edit--open-next geiser-edit-module
-   geiser-edit-module-at-point geiser-edit-symbol)
+ '(geiser-compile-current-buffer geiser-compile-definition geiser-compile-definition-and-go geiser-compile-file geiser-eval-buffer geiser-eval-buffer-and-go geiser-eval-definition geiser-eval-definition-and-go geiser-eval-last-sexp geiser-eval-region geiser-eval-region-and-go geiser-expand-definition geiser-expand-last-sexp geiser-expand-region geiser-load-current-buffer geiser-load-file geiser-log-clear geiser-repl-clear-buffer geiser-squarify geiser-pop-symbol-stack geiser-insert-lambda)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--geiser-compile-current-buffer-after))
+
+(defun ems--geiser-doc-edit-symbol-at-point-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-speak-line)
-       (emacsvox-icon 'open-object)))))
+       (emacsvox-icon 'open-object)))
+
+(cl-loop
+ for f in
+ '(geiser-doc-edit-symbol-at-point geiser-edit-symbol-at-point geiser-doc-symbol-at-point geiser-doc-refresh geiser-doc-previous-section geiser-doc-previous geiser-doc-next-section geiser-doc-next geiser-doc-module geiser-doc-look-up-manual geiser-edit--open-next geiser-edit-module geiser-edit-module-at-point geiser-edit-symbol)
+ do
+ (advice-add f :after #'ems--geiser-doc-edit-symbol-at-point-after))
+
+(defun ems--geiser-repl--bol-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'select-object)
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
  '(geiser-repl--bol geiser-repl--newline-and-indent)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'select-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--geiser-repl--bol-after))
+
+(defun ems--geiser-repl-previous-prompt-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(
-   geiser-repl-previous-prompt geiser-repl-next-prompt
-   geiser-repl--previous-error  geiser-repl--next-error
-   )
+ '(geiser-repl-previous-prompt geiser-repl-next-prompt geiser-repl--previous-error geiser-repl--next-error)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--geiser-repl-previous-prompt-after))
 
 (defun ems--geiser-repl-exit-after (&rest _)
   "speak."
@@ -192,18 +174,17 @@
 (advice-add 'geiser-repl--doc-module :after
             #'ems--geiser-repl--doc-module-after)
 
+(defun ems--geiser-xref-callees-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(
-   geiser-xref-callees geiser-xref-callers geiser-xref-generic-methods
-   )
+ '(geiser-xref-callees geiser-xref-callers geiser-xref-generic-methods)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--geiser-xref-callees-after))
 
 (provide 'emacsvox-geiser)
 ;;;  end of file

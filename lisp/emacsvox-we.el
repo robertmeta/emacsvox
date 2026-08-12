@@ -990,19 +990,16 @@ used as well."
 
 ;;;   URL Advice: 
 
+(defun ems--url-write-global-history-around (orig-fun &rest args)
+  "Silence messages while this function executes"
+  (let ((url-show-status nil))
+       (ems-with-messages-silenced ad-do-it)))
+
 (cl-loop
  for f in
- '(
-   url-write-global-history url-history-save-history
-   url-http-chunked-encoding-after-change-function url-cookie-handle-set-cookie
-   url-retrieve-internal
-   url-lazy-message url-cookie-write-file)
+ '(url-write-global-history url-history-save-history url-http-chunked-encoding-after-change-function url-cookie-handle-set-cookie url-retrieve-internal url-lazy-message url-cookie-write-file)
  do
- (eval
-  `(defadvice   ,f (around emacsvox pre act comp)
-     "Silence messages while this function executes"
-     (let ((url-show-status nil))
-       (ems-with-messages-silenced ad-do-it)))))
+ (advice-add f :around #'ems--url-write-global-history-around))
 
 (provide 'emacsvox-we)
 ;;;  end of file

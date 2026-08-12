@@ -70,44 +70,41 @@
    ))
 
 ;;;  Speech-enable interactive commands:
-(cl-loop
- for f in
- '(rst-promote-region
-   rst-shift-region)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--rst-promote-region-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(rst-goto-section rst-forward-section rst-backward-section
-                    rst-forward-indented-block)
+ '(rst-promote-region rst-shift-region)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--rst-promote-region-after))
+
+(defun ems--rst-goto-section-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'section)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(rst-compile rst-compile-alt-toolset
-               rst-adjust rst-adjust-section-title
-               rst-compile-find-conf rst-compile-pdf-preview
-               rst-compile-pseudo-region rst-compile-slides-preview
-               rst-display-adornments-hierarchy)
+ '(rst-goto-section rst-forward-section rst-backward-section rst-forward-indented-block)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--rst-goto-section-after))
+
+(defun ems--rst-compile-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'task-done)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(rst-compile rst-compile-alt-toolset rst-adjust rst-adjust-section-title rst-compile-find-conf rst-compile-pdf-preview rst-compile-pseudo-region rst-compile-slides-preview rst-display-adornments-hierarchy)
+ do
+ (advice-add f :after #'ems--rst-compile-after))
 
 (defun ems--rst-toc-after (&rest _)
   "speak."
@@ -147,40 +144,40 @@
 
 (advice-add 'rst-mark-section :after #'ems--rst-mark-section-after)
 
+(defun ems--rst-bullet-list-region-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'item)
+       (message "Bulletized. ")))
+
 (cl-loop
  for f in
- '(
-   rst-bullet-list-region rst-convert-bullets-to-enumeration
-   rst-enumerate-region)
+ '(rst-bullet-list-region rst-convert-bullets-to-enumeration rst-enumerate-region)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'item)
-       (message "Bulletized. ")))))
+ (advice-add f :after #'ems--rst-bullet-list-region-after))
+
+(defun ems--rst-insert-list-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'open-object)
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
  '(rst-insert-list rst-insert-list-new-item rst-toc-insert)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'open-object)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--rst-insert-list-after))
+(defun ems--rst-join-paragraph-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'task-done)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(rst-join-paragraph rst-line-block-region
-                      rst-straighten-adornments rst-straighten-bullets-region)
+ '(rst-join-paragraph rst-line-block-region rst-straighten-adornments rst-straighten-bullets-region)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'task-done)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--rst-join-paragraph-after))
 
 (provide 'emacsvox-rst)
 ;;;  end of file

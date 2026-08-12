@@ -76,32 +76,31 @@
 
 (advice-add 'deadgrep :after #'ems--deadgrep-after)
 
-(cl-loop
- for f in 
- '(deadgrep-visit-result-other-window deadgrep-visit-result )
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--deadgrep-visit-result-other-window-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'select-object)
        (emacsvox-speak-line)
-       (emacsvox-icon 'open-object)))))
+       (emacsvox-icon 'open-object)))
 
 (cl-loop
- for f in 
- '(
-   deadgrep-forward-match deadgrep-forward
-   deadgrep-backward-match deadgrep-backward
-   deadgrep-forward-filename deadgrep-backward-filename)
+ for f in
+ '(deadgrep-visit-result-other-window deadgrep-visit-result)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--deadgrep-visit-result-other-window-after))
+
+(defun ems--deadgrep-forward-match-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (let ((emacsvox-show-point t))
          (emacsvox-icon 'large-movement)
-         (emacsvox-speak-line))))))
+         (emacsvox-speak-line))))
+
+(cl-loop
+ for f in
+ '(deadgrep-forward-match deadgrep-forward deadgrep-backward-match deadgrep-backward deadgrep-forward-filename deadgrep-backward-filename)
+ do
+ (advice-add f :after #'ems--deadgrep-forward-match-after))
 
 (provide 'emacsvox-deadgrep)
 ;;;  end of file

@@ -70,26 +70,28 @@
 
 ;;;  Interactive Commands:
 
-(cl-loop
- for f  in
- '(ivy-switch-buffer-other-window ivy-switch-buffer)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--ivy-switch-buffer-other-window-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (with-current-buffer (window-buffer (selected-window))
-         (emacsvox-speak-mode-line))))))
+         (emacsvox-speak-mode-line))))
 
 (cl-loop
- for f in 
+ for f in
+ '(ivy-switch-buffer-other-window ivy-switch-buffer)
+ do
+ (advice-add f :after #'ems--ivy-switch-buffer-other-window-after))
+
+(defun ems--ivy-done-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'close-object)))
+
+(cl-loop
+ for f in
  '(ivy-done ivy-alt-done ivy-immediate-done)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'close-object)))))
+ (advice-add f :after #'ems--ivy-done-after))
 
 (defun emacsvox-ivy-speak-selection ()
   "Speak current ivy selection."
@@ -100,18 +102,17 @@
     ivy--length
     (elt ivy--old-cands ivy--index))))
 
+(defun ems--ivy-beginning-of-buffer-after (&rest _)
+  "Speak selection."
+  (when (ems-interactive-p)
+       (emacsvox-ivy-speak-selection)
+       (emacsvox-icon 'select-object)))
+
 (cl-loop
  for f in
- '(
-   ivy-beginning-of-buffer  ivy-end-of-buffer
-   ivy-next-line ivy-previous-line)
+ '(ivy-beginning-of-buffer ivy-end-of-buffer ivy-next-line ivy-previous-line)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Speak selection."
-     (when (ems-interactive-p)
-       (emacsvox-ivy-speak-selection)
-       (emacsvox-icon 'select-object)))))
+ (advice-add f :after #'ems--ivy-beginning-of-buffer-after))
 
 (defun ems--ivy--exhibit-after (&rest _)
   "Speak updated Ivy list." (emacsvox-ivy-speak-selection)
@@ -119,9 +120,9 @@
 
 (advice-add 'ivy--exhibit :after #'ems--ivy--exhibit-after)
 
-(defun ems--ivy-read-before (&rest _)
+(defun ems--ivy-read-before (prompt &rest _)
   "Speak prompt" (emacsvox-icon 'open-object)
-  (dtk-speak (ad-get-arg 0)))
+  (dtk-speak prompt))
 
 (advice-add 'ivy-read :before #'ems--ivy-read-before)
 

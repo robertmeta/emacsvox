@@ -95,32 +95,30 @@
   "Summarize current item."
   (emacsvox-speak-line))
 
-(cl-loop for f in
-         '(newsticker-next-item newsticker-previous-item
-                                newsticker-next-new-item
-                                newsticker-previous-new-item
-                                newsticker-previous-feed newsticker-next-feed
-                                )
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "Speak."
-             (when (ems-interactive-p)
+(defun ems--newsticker-next-item-after (&rest _)
+  "Speak."
+  (when (ems-interactive-p)
                (emacsvox-icon 'large-movement)
-               (emacsvox-newsticker-summarize-item)))))
+               (emacsvox-newsticker-summarize-item)))
+
+(cl-loop
+ for f in
+ '(newsticker-next-item newsticker-previous-item newsticker-next-new-item newsticker-previous-new-item newsticker-previous-feed newsticker-next-feed)
+ do
+ (advice-add f :after #'ems--newsticker-next-item-after))
 
 ;;;   silence auto activity
 
-(cl-loop for f in
-         '(newsticker-get-news-with-delay
-           newsticker-get-news
-           newsticker--cache-save)
-         do
-         (eval
-          `(defadvice  ,f (around emacsvox pre act comp)
-             "Silence messages."
-             (let ((emacsvox-speak-messages nil))
-               ad-do-it))))
+(defun ems--newsticker-get-news-with-delay-around (orig-fun &rest args)
+  "Silence messages."
+  (let ((emacsvox-speak-messages nil))
+    (apply orig-fun args)))
+
+(cl-loop
+ for f in
+ '(newsticker-get-news-with-delay newsticker-get-news newsticker--cache-save)
+ do
+ (advice-add f :around #'ems--newsticker-get-news-with-delay-around))
 
 (provide 'emacsvox-newsticker)
 ;;;  end of file

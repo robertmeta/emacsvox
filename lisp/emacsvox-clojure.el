@@ -66,99 +66,95 @@
 (advice-add 'clojure-toggle-keyword-string :after
             #'ems--clojure-toggle-keyword-string-after)
 
-(cl-loop
- for f in 
- '(clojure-cycle-not clojure-cycle-when)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--clojure-cycle-not-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'button)
-       (emacsvox-speak-line)))))
+       (emacsvox-speak-line)))
 
 (cl-loop
- for f in 
- '(clojure-view-cheatsheet
-   clojure-view-grimoire
-   clojure-view-guide
-   clojure-view-reference-section
-   clojure-view-style-guide)
+ for f in
+ '(clojure-cycle-not clojure-cycle-when)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--clojure-cycle-not-after))
+
+(defun ems--clojure-view-cheatsheet-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'open-object)
-       (emacsvox-speak-buffer)))))
+       (emacsvox-speak-buffer)))
+
+(cl-loop
+ for f in
+ '(clojure-view-cheatsheet clojure-view-grimoire clojure-view-guide clojure-view-reference-section clojure-view-style-guide)
+ do
+ (advice-add f :after #'ems--clojure-view-cheatsheet-after))
+
+(defun ems--clojure-forward-logical-sexp-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
  '(clojure-forward-logical-sexp clojure-backward-logical-sexp)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--clojure-forward-logical-sexp-after))
 
 (defun ems--clojure-align-after (&rest _)
   "speak." (when (ems-interactive-p) (emacsvox-icon 'fill-object)))
 
 (advice-add 'clojure-align :after #'ems--clojure-align-after)
 
+(defun ems--clojure-insert-ns-form-at-point-after (&rest _)
+  "Provide Auditory feedback."
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)
+       (emacsvox-icon 'select-object)))
+
 (cl-loop
  for f in
  '(clojure-insert-ns-form-at-point clojure-insert-ns-form)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Provide Auditory feedback."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)
-       (emacsvox-icon 'select-object)))))
-(cl-loop
- for f in
- '(
-   clojure-cycle-if clojure-cycle-privacy
-   clojure-introduce-let clojure-move-to-let
-   clojure-let-backward-slurp-sexp clojure-let-forward-slurp-sexp)
- do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)))))
-;; Catch-all for now:
+ (advice-add f :after #'ems--clojure-insert-ns-form-at-point-after))
+(defun ems--clojure-cycle-if-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)))
 
 (cl-loop
  for f in
- '(
-   clojure-thread clojure-thread-first-all clojure-thread-last-all
-   clojure-unwind clojure-unwind-all)
+ '(clojure-cycle-if clojure-cycle-privacy clojure-introduce-let clojure-move-to-let clojure-let-backward-slurp-sexp clojure-let-forward-slurp-sexp)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "Provide place-holder auditory feedback."
-     (when (ems-interactive-p)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--clojure-cycle-if-after))
+;; Catch-all for now:
+
+(defun ems--clojure-thread-after (&rest _)
+  "Provide place-holder auditory feedback."
+  (when (ems-interactive-p)
+       (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(clojure-thread clojure-thread-first-all clojure-thread-last-all clojure-unwind clojure-unwind-all)
+ do
+ (advice-add f :after #'ems--clojure-thread-after))
 
 ;;;  Speech-Enable Refactoring:
 
-(cl-loop
- for f in
- '(
-   clojure-convert-collection-to-list clojure-convert-collection-to-map
-   clojure-convert-collection-to-quoted-list clojure-convert-collection-to-set
-   clojure-convert-collection-to-vector) do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+(defun ems--clojure-convert-collection-to-list-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (let ((begin (point)))
          (forward-sexp)
-         (dtk-speak(buffer-substring begin (point))))))))
+         (dtk-speak(buffer-substring begin (point))))))
+
+(cl-loop
+ for f in
+ '(clojure-convert-collection-to-list clojure-convert-collection-to-map clojure-convert-collection-to-quoted-list clojure-convert-collection-to-set clojure-convert-collection-to-vector)
+ do
+ (advice-add f :after #'ems--clojure-convert-collection-to-list-after))
 
 (provide 'emacsvox-clojure)
 ;;;  end of file

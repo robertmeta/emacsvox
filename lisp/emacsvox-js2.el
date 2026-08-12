@@ -90,76 +90,71 @@
 
 (advice-add 'js2-mark-defun :after #'ems--js2-mark-defun-after)
 
-(cl-loop for f in
-         '(js2-mode-forward-sexp js2-mode-backward-sibling js2-next-error)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
+(defun ems--js2-mode-forward-sexp-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
                (let ((emacsvox-show-point t))
                  (emacsvox-icon 'large-movement)
-                 (emacsvox-speak-line))))))
-
-(cl-loop for f in
-         '(
-           js2-beginning-of-line js2-indent-line
-           js2-indent-bounce-backwards js2-forward-sws
-           js2-backward-sws js2-enter-key
-           js2-end-of-line
-           js2-mode-match-single-quote js2-mode-match-paren
-           js2-mode-match-double-quote js2-mode-match-curly
-           js2-mode-match-bracket js2-mode-magic-close-paren
-           js2-insert-and-indent)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
-               (emacsvox-speak-line)))))
-
-(cl-loop for f in
-         '(
-           js2-mode-hide-comments js2-mode-hide-element
-           js2-mode-hide-functions js2-mode-hide-warnings-and-errors)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
-               (emacsvox-icon 'close-object)
-               (message "Hid %s"
-                        ,(substring (symbol-name f)
-                                    (length "js2-mode-hide-")))))))
-
-(cl-loop for f in
-         '(js2-mode-show-all js2-mode-show-comments
-                             js2-mode-show-element js2-mode-show-functions)
-         do
-         (eval
-          `(defadvice ,f (after emacsvox pre act comp)
-             "speak."
-             (when (ems-interactive-p)
-               (emacsvox-icon 'open-object)
-               (message "Showed %s"
-                        ,(substring (symbol-name f)
-                                    (length "js2-mode-show-")))))))
+                 (emacsvox-speak-line))))
 
 (cl-loop
  for f in
- '(
-   js2-mode-toggle-warnings-and-errors
-   js2-mode-toggle-hide-functions
-   js2-mode-toggle-hide-comments                    js2-mode-toggle-element)
+ '(js2-mode-forward-sexp js2-mode-backward-sibling js2-next-error)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
+ (advice-add f :after #'ems--js2-mode-forward-sexp-after))
+
+(defun ems--js2-beginning-of-line-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+               (emacsvox-speak-line)))
+
+(cl-loop
+ for f in
+ '(js2-beginning-of-line js2-indent-line js2-indent-bounce-backwards js2-forward-sws js2-backward-sws js2-enter-key js2-end-of-line js2-mode-match-single-quote js2-mode-match-paren js2-mode-match-double-quote js2-mode-match-curly js2-mode-match-bracket js2-mode-magic-close-paren js2-insert-and-indent)
+ do
+ (advice-add f :after #'ems--js2-beginning-of-line-after))
+
+(defun ems--js2-mode-hide-comments-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+               (emacsvox-icon 'close-object)
+               (message "Hid %s"
+                        ,(substring (symbol-name f)
+                                    (length "js2-mode-hide-")))))
+
+(cl-loop
+ for f in
+ '(js2-mode-hide-comments js2-mode-hide-element js2-mode-hide-functions js2-mode-hide-warnings-and-errors)
+ do
+ (advice-add f :after #'ems--js2-mode-hide-comments-after))
+
+(defun ems--js2-mode-show-all-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+               (emacsvox-icon 'open-object)
+               (message "Showed %s"
+                        ,(substring (symbol-name f)
+                                    (length "js2-mode-show-")))))
+
+(cl-loop
+ for f in
+ '(js2-mode-show-all js2-mode-show-comments js2-mode-show-element js2-mode-show-functions)
+ do
+ (advice-add f :after #'ems--js2-mode-show-all-after))
+
+(defun ems--js2-mode-toggle-warnings-and-errors-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
        (emacsvox-icon 'button)
        (message "Toggled %s"
                 ,(substring (symbol-name f)
-                            (length "js2-mode-toggle-")))))))
+                            (length "js2-mode-toggle-")))))
+
+(cl-loop
+ for f in
+ '(js2-mode-toggle-warnings-and-errors js2-mode-toggle-hide-functions js2-mode-toggle-hide-comments js2-mode-toggle-element)
+ do
+ (advice-add f :after #'ems--js2-mode-toggle-warnings-and-errors-after))
 
 (defun ems--js2-narrow-to-defun-after (&rest _)
   "speak."

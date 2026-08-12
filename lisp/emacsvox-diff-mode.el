@@ -71,18 +71,17 @@
 
 ;;;  Advice Interactive Commands:
 
+(defun ems--diff-next-complex-hunk-after (&rest _)
+  "speak."
+  (when (ems-interactive-p)
+       (emacsvox-icon 'large-movement)
+       (emacsvox-speak-line)))
+
 (cl-loop
  for f in
- '(diff-next-complex-hunk
-   diff-hunk-prev diff-hunk-next
-   diff-file-next diff-file-prev)
+ '(diff-next-complex-hunk diff-hunk-prev diff-hunk-next diff-file-next diff-file-prev)
  do
- (eval
-  `(defadvice ,f (after emacsvox pre act comp)
-     "speak."
-     (when (ems-interactive-p)
-       (emacsvox-icon 'large-movement)
-       (emacsvox-speak-line)))))
+ (advice-add f :after #'ems--diff-next-complex-hunk-after))
 
 (provide 'emacsvox-diff-mode)
 ;;;  end of file
