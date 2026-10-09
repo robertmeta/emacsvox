@@ -39,7 +39,7 @@ make q               # Clean, config, build everything including muggles
 ### Testing
 ```bash
 # Launch Emacspeak in vanilla Emacs to test
-emacs -q -l lisp/emacspeak-setup.el
+emacs -q -l lisp/emacsvox-setup.el
 
 # Or use the user's preferred method
 em                   # Launch emacs
@@ -56,8 +56,8 @@ cd lisp && make clean # Remove compiled files
 
 ### Core Speech Pipeline
 
-1. **High-Level API** (`emacspeak-speak.el`)
-   - Functions like `emacspeak-speak-line`, `emacspeak-speak-region`, `emacspeak-speak-buffer`
+1. **High-Level API** (`emacsvox-speak.el`)
+   - Functions like `emacsvox-speak-line`, `emacsvox-speak-region`, `emacsvox-speak-buffer`
    - Used by all speech-enabling modules
 
 2. **TTS Interface Layer** (`dtk-speak.el`)
@@ -81,8 +81,8 @@ cd lisp && make clean # Remove compiled files
 
 The codebase uses Emacs' modern `advice-add` system extensively (fully migrated from deprecated `defadvice` in December 2024):
 
-- **Core advice** (`emacspeak-advice.el`): Uses advice-add to wrap fundamental Emacs functions
-- **Package-specific modules** (`emacspeak-PACKAGE.el`): 193 modules with ~1,964 advice functions
+- **Core advice** (`emacsvox-advice.el`): Uses advice-add to wrap fundamental Emacs functions
+- **Package-specific modules** (`emacsvox-PACKAGE.el`): 193 modules with ~1,964 advice functions
 - **Lazy loading**: Speech modules only load when their base package is used via `with-eval-after-load`
 - **Naming convention**: All advice functions prefixed with `ems--FUNCTION-CLASS` (e.g., `ems--next-line-after`)
 
@@ -98,20 +98,20 @@ The codebase uses Emacs' modern `advice-add` system extensively (fully migrated 
 ## Key Files
 
 - `lisp/emacspeak.el` - Main entry point, package extension registry
-- `lisp/emacspeak-setup.el` - Initialization entry point
+- `lisp/emacsvox-setup.el` - Initialization entry point
 - `lisp/dtk-speak.el` - TTS interface layer (~1800 lines)
-- `lisp/emacspeak-speak.el` - High-level speech API (~2300 lines)
-- `lisp/emacspeak-advice.el` - Core Emacs function wrapping
-- `lisp/emacspeak-preamble.el` - Paths and initialization
+- `lisp/emacsvox-speak.el` - High-level speech API (~2300 lines)
+- `lisp/emacsvox-advice.el` - Core Emacs function wrapping
+- `lisp/emacsvox-preamble.el` - Paths and initialization
 - `servers/tts-lib.tcl` - Common TTS server library
 
 ## Development Patterns
 
 ### Adding Speech Support for a Package
 
-1. Create `lisp/emacspeak-PACKAGE.el`
+1. Create `lisp/emacsvox-PACKAGE.el`
 2. Use `defadvice` to wrap key functions with speech feedback
-3. Call high-level speech functions from `emacspeak-speak.el`
+3. Call high-level speech functions from `emacsvox-speak.el`
 4. Register in `emacspeak.el` using `with-eval-after-load`
 
 ### Speech Feedback Pattern
@@ -119,8 +119,8 @@ The codebase uses Emacs' modern `advice-add` system extensively (fully migrated 
 (defadvice some-function (after emacspeak pre act comp)
   "Provide speech feedback."
   (when (ems-interactive-p)
-    (emacspeak-icon 'task-done)
-    (emacspeak-speak-line)))
+    (emacsvox-icon 'task-done)
+    (emacsvox-speak-line)))
 ```
 
 ### Voice Application Pattern
@@ -145,7 +145,7 @@ Simple text-based commands sent to server stdin:
 
 After building, add to `.emacs`:
 ```elisp
-(load-file "/path/to/emacsvox/lisp/emacspeak-setup.el")
+(load-file "/path/to/emacsvox/lisp/emacsvox-setup.el")
 ```
 
 Requires:

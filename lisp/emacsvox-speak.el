@@ -2847,7 +2847,7 @@ Use `,' and `.' to continuously decrease/increase `selective-display'.
        emacsvox-bug-address 
        (concat "Emacsvox: " emacsvox-version)
        vars nil nil
-       "Description of Problem:")))))
+       "Description of Problem:"))))
 (provide 'emacsvox-speak)
 
 ;;;  end of file
