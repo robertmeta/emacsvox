@@ -9,7 +9,7 @@ announcements/auto
 # ignore generated files:
 README
 etc/emacspeak.sh
-lisp/emacspeak-loaddefs.el
+lisp/emacvox-loaddefs.el
 lisp/TAGS
 info/TAGS
 js/node/node_modules/
@@ -27,8 +27,8 @@ servers/software-dtk/tcldtk.so
 *.pdf
 **.pdf
 # ELPA-generated files
-/emacspeak-autoloads.el
-/emacspeak-pkg.el
+/emacsvox-autoloads.el
+/emacsvox-pkg.el
 aster-math
 /servers/linux-outloud/alsaparams
 /servers/swiftmac
